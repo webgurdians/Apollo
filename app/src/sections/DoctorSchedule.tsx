@@ -1,0 +1,151 @@
+import { Clock, UserCheck } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { trpc } from "@/providers/trpc";
+
+const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+
+export default function DoctorSchedule() {
+  const { t } = useTranslation();
+  const { data: dbDoctors } = trpc.patients.listDoctors.useQuery();
+  const doctorsList = dbDoctors || [];
+
+  const schedule = daysOfWeek.map((day) => {
+    if (day === "Sunday") {
+      return {
+        day: t("doctorSchedule.sunday"),
+        doctor: t("doctorSchedule.na"),
+        specialty: t("doctorSchedule.emergencyOnly"),
+        hospital: "Aranghata Centre",
+        time: t("doctorSchedule.timeSun"),
+        status: "Limited",
+        statusKey: "limited",
+      };
+    }
+
+    const dayDoctor = doctorsList.find((doc) =>
+      doc.availability?.toLowerCase().includes(day.toLowerCase())
+    );
+
+    if (dayDoctor) {
+      let time = dayDoctor.availability || "";
+      const match = time.match(/\(([^)]+)\)/);
+      if (match && match[1]) {
+        time = match[1];
+      }
+      return {
+        day: t(`doctorSchedule.${day.toLowerCase()}`, day),
+        doctor: `Dr. ${dayDoctor.name}`,
+        specialty: dayDoctor.specialty,
+        hospital: dayDoctor.branch || "Apollo Hospitals",
+        time,
+        status: dayDoctor.status,
+        statusKey: dayDoctor.status === "Available" ? "available" : "limited",
+      };
+    }
+
+    return {
+      day: t(`doctorSchedule.${day.toLowerCase()}`, day),
+      doctor: "—",
+      specialty: t("doctorSchedule.emergencyOnly"),
+      hospital: "Aranghata Centre",
+      time: t("doctorSchedule.timeSun"),
+      status: "Limited",
+      statusKey: "limited",
+    };
+  });
+
+  return (
+    <section id="doctors" className="py-16 bg-white">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-12">
+          <span className="text-apollo-orange font-semibold text-sm uppercase tracking-wider">
+            {t("doctorSchedule.sectionTitle")}
+          </span>
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mt-2 mb-4">
+            {t("doctorSchedule.title")}
+          </h2>
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            {t("doctorSchedule.subtitle")}
+          </p>
+        </div>
+
+        <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
+          {/* Desktop Table */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-apollo-blue text-white">
+                  <th className="text-left px-6 py-4 font-semibold text-sm">{t("doctorSchedule.day")}</th>
+                  <th className="text-left px-6 py-4 font-semibold text-sm">{t("doctorSchedule.doctor")}</th>
+                  <th className="text-left px-6 py-4 font-semibold text-sm">{t("doctorSchedule.specialty")}</th>
+                  <th className="text-left px-6 py-4 font-semibold text-sm">{t("doctorSchedule.timing")}</th>
+                  <th className="text-left px-6 py-4 font-semibold text-sm">{t("doctorSchedule.status")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {schedule.map((row, index) => (
+                  <tr
+                    key={index}
+                    className={`border-b last:border-b-0 hover:bg-apollo-light/30 transition-colors ${
+                      index % 2 === 0 ? "bg-white" : "bg-gray-50/50"
+                    }`}
+                  >
+                    <td className="px-6 py-4 font-medium text-gray-900">{row.day}</td>
+                    <td className="px-6 py-4 text-gray-700">{row.doctor}</td>
+                    <td className="px-6 py-4 text-muted-foreground">{row.specialty}</td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2 text-gray-700">
+                        <Clock className="w-4 h-4 text-apollo-orange" />
+                        {row.time}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span
+                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
+                          row.statusKey === "available"
+                            ? "bg-green-100 text-green-700"
+                            : "bg-yellow-100 text-yellow-700"
+                        }`}
+                      >
+                        <UserCheck className="w-3 h-3" />
+                        {row.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile Cards */}
+          <div className="md:hidden divide-y">
+            {schedule.map((row, index) => (
+              <div key={index} className="p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-gray-900">{row.day}</span>
+                  <span
+                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
+                      row.statusKey === "available"
+                        ? "bg-green-100 text-green-700"
+                        : "bg-yellow-100 text-yellow-700"
+                    }`}
+                  >
+                    {row.status}
+                  </span>
+                </div>
+                <div className="space-y-1 text-sm">
+                  <p className="text-gray-700 font-medium">{row.doctor}</p>
+                  <p className="text-muted-foreground">{row.specialty}</p>
+                  <div className="flex items-center gap-2 text-gray-700">
+                    <Clock className="w-4 h-4 text-apollo-orange" />
+                    {row.time}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
