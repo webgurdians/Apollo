@@ -120,6 +120,9 @@ app.all("/api/trpc/*", async (c) => {
     req: c.req.raw,
     router: appRouter,
     createContext,
+    onError({ error, path }) {
+      console.error(`tRPC Error on path ${path}:`, error);
+    },
   });
   
   res.headers.forEach((value, key) => {
