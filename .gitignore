@@ -19,6 +19,9 @@ build/
 # PDF generated receipts
 receipt-service/receipts/
 
+# Dev Server cache
+5173/
+
 # System files
 .DS_Store
 Thumbs.db
