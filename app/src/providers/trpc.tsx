@@ -8,6 +8,9 @@ import type { ReactNode } from "react";
 export const trpc = createTRPCReact<AppRouter>();
 
 const getBaseUrl = () => {
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL.replace(/\/$/, "");
+  }
   if (typeof window !== "undefined") return window.location.origin;
   return "http://localhost:3000";
 };

@@ -17,9 +17,21 @@ import {
 } from "../db/schema";
 import { eq } from "drizzle-orm";
 
+import { cors } from "hono/cors";
+
 const app = new Hono<{ Bindings: HttpBindings }>();
 
 app.use(bodyLimit({ maxSize: 50 * 1024 * 1024 }));
+
+// Enable CORS
+app.use("/api/*", cors({
+  origin: (origin) => {
+    if (!origin) return "*";
+    const allowed = env.allowedOrigins.includes(origin) || origin.endsWith("localhost:5173") || origin.endsWith("127.0.0.1:5173");
+    return allowed ? origin : undefined;
+  },
+  credentials: true,
+}));
 
 // CSRF protection for state-changing requests
 const CSRF_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);

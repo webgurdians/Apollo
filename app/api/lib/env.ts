@@ -13,4 +13,5 @@ export const env = {
   appSecret: process.env.APP_SECRET || "apollo_clinic_dev_secret_change_in_prod",
   isProduction: process.env.NODE_ENV === "production",
   databaseUrl: process.env.DATABASE_URL || "sqlite.db",
+  allowedOrigins: process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(",") : [],
 };
