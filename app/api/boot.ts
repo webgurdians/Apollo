@@ -114,13 +114,18 @@ app.get("/api/prescriptions/:id/pdf", async (c) => {
   }
 });
 
-app.use("/api/trpc/*", async (c) => {
-  return fetchRequestHandler({
+app.all("/api/trpc/*", async (c) => {
+  const res = await fetchRequestHandler({
     endpoint: "/api/trpc",
     req: c.req.raw,
     router: appRouter,
     createContext,
   });
+  
+  res.headers.forEach((value, key) => {
+    c.header(key, value);
+  });
+  return c.body(res.body, res.status);
 });
 app.all("/api/*", (c) => c.json({ error: "Not Found" }, 404));
 
