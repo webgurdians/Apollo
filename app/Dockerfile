@@ -2,7 +2,7 @@ FROM node:20-alpine AS base
 WORKDIR /app
 
 FROM base AS deps
-COPY package.json package-lock.json ./
+COPY package.json package-lock.json .npmrc ./
 RUN npm ci --prefer-offline --no-audit
 
 FROM deps AS build
