@@ -21,5 +21,5 @@ export const env = {
         }
         return trimmed;
       })
-    : [],
+    : ["https://apollo-mald.vercel.app"],
 };
