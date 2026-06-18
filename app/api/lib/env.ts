@@ -10,7 +10,7 @@ function secret(name: string): string {
 
 export const env = {
   appId: process.env.APP_ID || "demo-app",
-  appSecret: secret("APP_SECRET"),
+  appSecret: process.env.APP_SECRET || "apollo_clinic_dev_secret_change_in_prod",
   isProduction: process.env.NODE_ENV === "production",
   databaseUrl: process.env.DATABASE_URL || "sqlite.db",
 };
