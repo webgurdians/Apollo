@@ -32,16 +32,16 @@ const servicePrices: Record<string, number> = {
 };
 
 const statusColors: Record<string, string> = {
-  pending: "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 hover:bg-yellow-500/20",
-  confirmed: "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 hover:bg-cyan-500/20",
-  completed: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20",
-  cancelled: "bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20",
+  pending: "bg-yellow-100 text-yellow-700 hover:bg-yellow-100",
+  confirmed: "bg-blue-100 text-blue-700 hover:bg-blue-100",
+  completed: "bg-green-100 text-green-700 hover:bg-green-100",
+  cancelled: "bg-red-100 text-red-700 hover:bg-red-100",
 };
 
 const paymentColors: Record<string, string> = {
-  pending: "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 hover:bg-yellow-500/20",
-  paid: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20",
-  failed: "bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20",
+  pending: "bg-yellow-100 text-yellow-700 hover:bg-yellow-100",
+  paid: "bg-green-100 text-green-700 hover:bg-green-100",
+  failed: "bg-red-100 text-red-700 hover:bg-red-100",
 };
 
 export default function AppointmentsSection() {
@@ -77,26 +77,26 @@ export default function AppointmentsSection() {
 
   if (isLoading) {
     return (
-      <div className="glass-panel rounded-xl p-8 text-center">
-        <Loader2 className="w-6 h-6 animate-spin mx-auto text-primary" />
+      <div className="bg-white rounded-xl border shadow-sm p-8 text-center">
+        <Loader2 className="w-6 h-6 animate-spin mx-auto text-apollo-blue" />
       </div>
     );
   }
 
   if (!appointments?.length) {
     return (
-      <div className="glass-panel rounded-xl p-8 text-center text-slate-400">
+      <div className="bg-white rounded-xl border shadow-sm p-8 text-center text-muted-foreground">
         No appointments yet. Patients will appear here after booking.
       </div>
     );
   }
 
   return (
-    <div className="glass-panel rounded-xl border border-white/5 overflow-hidden shadow-2xl">
+    <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
       <div className="overflow-x-auto">
         <Table>
           <TableHeader>
-            <TableRow className="bg-white/5 border-b border-white/5">
+            <TableRow className="bg-gray-50">
               <TableHead>ID</TableHead>
               <TableHead>Name</TableHead>
               <TableHead>Phone</TableHead>

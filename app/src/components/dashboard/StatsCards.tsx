@@ -21,19 +21,16 @@ export default function StatsCards({ stats, loading }: { stats?: StatsData; load
   return (
     <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
       {statConfig.map((stat) => (
-        <div key={stat.key} className="glass-panel glass-panel-hover rounded-xl p-4 border border-white/5 relative overflow-hidden group">
-          {/* Subtle neon accent border top */}
-          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-primary/30 to-purple-500/30 group-hover:from-primary group-hover:to-purple-500 transition-all duration-300" />
-          
+        <div key={stat.key} className="bg-white rounded-xl p-4 border shadow-sm">
           <div className="flex items-center gap-3 mb-2">
-            <div className={`w-8 h-8 ${stat.color} bg-opacity-20 backdrop-blur-sm rounded-lg flex items-center justify-center border border-white/10`}>
-              <stat.icon className="w-4 h-4 text-primary" />
+            <div className={`w-8 h-8 ${stat.color} rounded-lg flex items-center justify-center`}>
+              <stat.icon className="w-4 h-4 text-white" />
             </div>
-            <span className="text-2xl font-bold text-white text-glow tracking-tight group-hover:text-primary transition-all">
+            <span className="text-2xl font-bold text-gray-900">
               {loading ? "—" : (stats?.[stat.key] ?? 0)}
             </span>
           </div>
-          <p className="text-xs text-slate-400 font-medium group-hover:text-slate-300 transition-all">{stat.label}</p>
+          <p className="text-xs text-muted-foreground">{stat.label}</p>
         </div>
       ))}
     </div>
