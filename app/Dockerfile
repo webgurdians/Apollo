@@ -13,6 +13,7 @@ FROM node:20-alpine AS production
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/sqlite.db ./sqlite.db
+COPY --from=build /app/db/migrations ./db/migrations
 COPY package.json ./
 
 EXPOSE 3000

@@ -22,24 +22,44 @@ export default function DoctorSchedule() {
       };
     }
 
-    const dayDoctor = doctorsList.find((doc) =>
+    const dayDoctors = doctorsList.filter((doc) =>
       doc.availability?.toLowerCase().includes(day.toLowerCase())
     );
 
-    if (dayDoctor) {
-      let time = dayDoctor.availability || "";
-      const match = time.match(/\(([^)]+)\)/);
-      if (match && match[1]) {
-        time = match[1];
-      }
+    if (dayDoctors.length > 0) {
+      const doctor = dayDoctors
+        .map((doc) => {
+          let name = doc.name;
+          if (name.toLowerCase().startsWith("dr.")) {
+            name = name.substring(3).trim();
+          } else if (name.toLowerCase().startsWith("dr")) {
+            name = name.substring(2).trim();
+          }
+          return `Dr. ${name}`;
+        })
+        .join(" / ");
+
+      const specialty = dayDoctors.map((doc) => doc.specialty).join(" / ");
+      
+      const time = dayDoctors
+        .map((doc) => {
+          let tStr = doc.availability || "";
+          const match = tStr.match(/\(([^)]+)\)/);
+          return match && match[1] ? match[1] : tStr;
+        })
+        .join(" / ");
+
+      const hasAvailable = dayDoctors.some((doc) => doc.status === "Available");
+      const status = hasAvailable ? "Available" : "Limited";
+
       return {
         day: t(`doctorSchedule.${day.toLowerCase()}`, day),
-        doctor: `Dr. ${dayDoctor.name}`,
-        specialty: dayDoctor.specialty,
-        hospital: dayDoctor.branch || "Apollo Hospitals",
+        doctor,
+        specialty,
+        hospital: dayDoctors.map((doc) => doc.branch || "Apollo Hospitals").join(" / "),
         time,
-        status: dayDoctor.status,
-        statusKey: dayDoctor.status === "Available" ? "available" : "limited",
+        status: t(hasAvailable ? "doctorSchedule.available" : "doctorSchedule.limited", status),
+        statusKey: hasAvailable ? "available" : "limited",
       };
     }
 
@@ -49,7 +69,7 @@ export default function DoctorSchedule() {
       specialty: t("doctorSchedule.emergencyOnly"),
       hospital: "Aranghata Centre",
       time: t("doctorSchedule.timeSun"),
-      status: "Limited",
+      status: t("doctorSchedule.limited", "Limited"),
       statusKey: "limited",
     };
   });

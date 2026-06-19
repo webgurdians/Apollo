@@ -8,6 +8,19 @@ import { env } from "./lib/env";
 import { validateRequestOrigin } from "./lib/origin";
 import { getPrescriptionSecureToken, generatePrescriptionPdf } from "./lib/pdf";
 import { getDb } from "./queries/connection";
+import { migrate } from "drizzle-orm/better-sqlite3/migrator";
+import path from "path";
+import { fileURLToPath } from "url";
+
+// Run migrations automatically on server boot
+try {
+  const db = getDb();
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  migrate(db, { migrationsFolder: path.resolve(__dirname, "../db/migrations") });
+  console.log("Database migrations applied successfully.");
+} catch (error) {
+  console.error("Failed to run database migrations:", error);
+}
 import {
   prescriptions,
   patients,
