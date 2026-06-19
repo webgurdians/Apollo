@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { createRouter, publicQuery, staffQuery, clinicStaffQuery } from "./middleware";
 import { getDb } from "./queries/connection";
-import { appointments, contacts, doctors } from "@db/schema";
+import { appointments, contacts, doctors, bills } from "@db/schema";
 import { eq, desc, and, isNull } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { logActivity } from "./lib/activity";
@@ -18,14 +18,86 @@ export const createAppointmentInput = z.object({
   paymentMethod: z.enum(["online", "clinic"]).optional().default("clinic"),
 }).strict();
 
+async function ensureBillCreated(db: any, appointmentId: number, paymentMethod: "online" | "cash" | "upi") {
+  const [apt] = await db
+    .select({
+      id: appointments.id,
+      service: appointments.service,
+      doctorId: appointments.doctorId,
+      doctorFees: doctors.fees,
+    })
+    .from(appointments)
+    .leftJoin(doctors, eq(appointments.doctorId, doctors.id))
+    .where(eq(appointments.id, appointmentId))
+    .limit(1);
+
+  if (!apt) return;
+
+  const servicePrices: Record<string, number> = {
+    "OPD Consultation - General Physician": 500,
+    "OPD Consultation - Diabetes & Thyroid": 600,
+    "OPD Consultation - Cardiology (BP/ECG)": 800,
+    "Blood Test / Pathology": 1200,
+    "ECG": 300,
+    "X-Ray": 500,
+    "Urine Test": 150,
+    "Ultrasound": 1000,
+    "Apollo Chennai Referral": 1500,
+    "Health Checkup Package": 2999,
+  };
+
+  const amount = apt.doctorFees ?? servicePrices[apt.service] ?? 500;
+
+  const existing = await db
+    .select()
+    .from(bills)
+    .where(eq(bills.appointmentId, appointmentId))
+    .limit(1);
+
+  if (existing.length === 0) {
+    await db.insert(bills).values({
+      appointmentId,
+      amount,
+      tax: 0,
+      discount: 0,
+      total: amount,
+      status: "paid",
+      paymentMethod,
+      lockedAt: new Date(),
+    });
+  } else {
+    await db
+      .update(bills)
+      .set({
+        status: "paid",
+        paymentMethod,
+        lockedAt: new Date(),
+      })
+      .where(eq(bills.appointmentId, appointmentId));
+  }
+}
+
 export const appointmentRouter = createRouter({
   create: publicQuery
     .input(createAppointmentInput)
     .mutation(async ({ input }) => {
       const db = getDb();
 
+      // Look up doctor if service matches doctor's serviceName
+      let doctorId: number | null = input.doctorId || null;
+      if (!doctorId) {
+        const foundDoctor = await db
+          .select({ id: doctors.id })
+          .from(doctors)
+          .where(eq(doctors.serviceName, input.service))
+          .limit(1);
+        if (foundDoctor.length > 0) {
+          doctorId = foundDoctor[0].id;
+        }
+      }
+
       // Collision detection: check if same doctor + time slot already booked
-      if (input.startTime && input.doctorId) {
+      if (input.startTime && doctorId) {
         const startDate = new Date(input.startTime);
         const endDate = input.endTime ? new Date(input.endTime) : new Date(startDate.getTime() + 30 * 60000);
 
@@ -34,7 +106,7 @@ export const appointmentRouter = createRouter({
           .from(appointments)
           .where(
             and(
-              eq(appointments.doctorId, input.doctorId),
+              eq(appointments.doctorId, doctorId),
               isNull(appointments.deletedAt),
               eq(appointments.status, "confirmed"),
             )
@@ -53,18 +125,23 @@ export const appointmentRouter = createRouter({
       }
 
       const isPaid = input.paymentMethod === "online";
-      await db.insert(appointments).values({
+      const [insertedApt] = await db.insert(appointments).values({
         name: input.name,
         phone: input.phone,
         service: input.service,
         preferredDate: new Date(input.preferredDate),
         startTime: input.startTime ? new Date(input.startTime) : null,
         endTime: input.endTime ? new Date(input.endTime) : null,
-        doctorId: input.doctorId || null,
+        doctorId: doctorId,
         message: input.message || null,
         status: isPaid ? "confirmed" : "pending",
         paymentStatus: isPaid ? "paid" : "pending",
-      });
+      }).returning({ id: appointments.id });
+
+      if (isPaid && insertedApt) {
+        await ensureBillCreated(db, insertedApt.id, "online");
+      }
+
       return { success: true };
     }),
 
@@ -126,6 +203,7 @@ export const appointmentRouter = createRouter({
         .update(appointments)
         .set({ paymentStatus: input.paymentStatus })
         .where(eq(appointments.id, input.id));
+
       await logActivity(ctx.user, "payment", "appointment", input.id,
         `Updated payment status to ${input.paymentStatus}`);
       return { success: true };
