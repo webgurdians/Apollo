@@ -2,7 +2,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { trpc } from "@/providers/trpc";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { LogOut, History, Shield, FileText, MessageSquare } from "lucide-react";
+import { LogOut, History, Shield, FileText, MessageSquare, Calendar, Users, CreditCard, Mail, Stethoscope } from "lucide-react";
 import { useState } from "react";
 import StatsCards from "@/components/dashboard/StatsCards";
 import AppointmentsSection from "@/components/dashboard/AppointmentsSection";
@@ -71,26 +71,44 @@ export default function Admin() {
         <Tabs defaultValue="appointments" className="space-y-6">
           <div className="overflow-x-auto">
             <TabsList className="bg-white border shadow-sm inline-flex">
-              <TabsTrigger value="appointments">Appointments</TabsTrigger>
-              <TabsTrigger value="patients">Patients / History</TabsTrigger>
-              <TabsTrigger value="billing">Billing</TabsTrigger>
-              <TabsTrigger value="contacts">Enquiries</TabsTrigger>
-              <TabsTrigger value="staff">Staff</TabsTrigger>
-              <TabsTrigger value="doctors">Doctors</TabsTrigger>
-              <TabsTrigger value="report">
-                <FileText className="w-4 h-4 mr-1.5" />
+              <TabsTrigger value="appointments" className="flex items-center gap-1.5">
+                <Calendar className="w-4 h-4" />
+                Appointments
+              </TabsTrigger>
+              <TabsTrigger value="patients" className="flex items-center gap-1.5">
+                <Users className="w-4 h-4" />
+                Patients / History
+              </TabsTrigger>
+              <TabsTrigger value="billing" className="flex items-center gap-1.5">
+                <CreditCard className="w-4 h-4" />
+                Billing
+              </TabsTrigger>
+              <TabsTrigger value="contacts" className="flex items-center gap-1.5">
+                <Mail className="w-4 h-4" />
+                Enquiries
+              </TabsTrigger>
+              <TabsTrigger value="staff" className="flex items-center gap-1.5">
+                <Users className="w-4 h-4" />
+                Staff
+              </TabsTrigger>
+              <TabsTrigger value="doctors" className="flex items-center gap-1.5">
+                <Stethoscope className="w-4 h-4" />
+                Doctors
+              </TabsTrigger>
+              <TabsTrigger value="report" className="flex items-center gap-1.5">
+                <FileText className="w-4 h-4" />
                 Report
               </TabsTrigger>
-              <TabsTrigger value="activity">
-                <History className="w-4 h-4 mr-1.5" />
+              <TabsTrigger value="activity" className="flex items-center gap-1.5">
+                <History className="w-4 h-4" />
                 Activity
               </TabsTrigger>
-              <TabsTrigger value="settings">
-                <Shield className="w-4 h-4 mr-1.5" />
+              <TabsTrigger value="settings" className="flex items-center gap-1.5">
+                <Shield className="w-4 h-4" />
                 Settings
               </TabsTrigger>
-              <TabsTrigger value="whatsapp">
-                <MessageSquare className="w-4 h-4 mr-1.5" />
+              <TabsTrigger value="whatsapp" className="flex items-center gap-1.5">
+                <MessageSquare className="w-4 h-4" />
                 WhatsApp
               </TabsTrigger>
             </TabsList>

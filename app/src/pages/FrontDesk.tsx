@@ -36,6 +36,9 @@ import {
   Download,
   Filter,
   AlertTriangle,
+  Calendar,
+  Users,
+  Shield,
 } from "lucide-react";
 import { Link } from "react-router";
 import { format } from "date-fns";
@@ -227,12 +230,24 @@ export default function FrontDesk() {
 
         <Tabs defaultValue="appointments" className="space-y-6">
           <TabsList className="bg-white border shadow-sm">
-            <TabsTrigger value="appointments">Appointments</TabsTrigger>
-            <TabsTrigger value="patients">Patients / History</TabsTrigger>
+            <TabsTrigger value="appointments" className="flex items-center gap-1.5">
+              <Calendar className="w-4 h-4" />
+              Appointments
+            </TabsTrigger>
+            <TabsTrigger value="patients" className="flex items-center gap-1.5">
+              <Users className="w-4 h-4" />
+              Patients / History
+            </TabsTrigger>
             {import.meta.env.VITE_ENABLE_BILLING === "true" && (
-              <TabsTrigger value="billing">Billing</TabsTrigger>
+              <TabsTrigger value="billing" className="flex items-center gap-1.5">
+                <CreditCard className="w-4 h-4" />
+                Billing
+              </TabsTrigger>
             )}
-            <TabsTrigger value="settings">Settings</TabsTrigger>
+            <TabsTrigger value="settings" className="flex items-center gap-1.5">
+              <Shield className="w-4 h-4" />
+              Settings
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="appointments">
