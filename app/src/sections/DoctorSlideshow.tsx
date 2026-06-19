@@ -55,6 +55,16 @@ const fallbackDoctors = [
     availability: "Friday (11:00 AM – 3:00 PM)"
   },
   {
+    name: "Dr. Vishnu Abishek Raju",
+    specialty: "Gastroenterology / GI Medicine",
+    serviceName: "Dr. Vishnu Abishek Raju - Gastroenterology",
+    qualifications: "MBBS, MD (Internal Medicine), DM (Gastroenterology)",
+    branch: "Apollo Hospitals Greams Road, Chennai",
+    image: "/images/vishnu.jpg",
+    fees: 1200,
+    availability: "Friday (11:00 AM – 3:00 PM)"
+  },
+  {
     name: "Dr. Jatin Soni",
     specialty: "Urology",
     serviceName: "Dr. Jatin Soni - Urology",
@@ -63,6 +73,16 @@ const fallbackDoctors = [
     image: "/images/jatin.jpg",
     fees: 1200,
     availability: "Saturday (9:30 AM – 2:30 PM)"
+  },
+  {
+    name: "Dr. Rakesh Shetty",
+    specialty: "Orthopedics-Sports Medicine",
+    serviceName: "Dr. Rakesh Shetty - Orthopedics-Sports Medicine",
+    qualifications: "MBBS, DNB (Orthopaedic) Certified in spine and joint Replacement Surgeon (Languages: English, Telugu, Tamil, Kannada, Bengali, Tulu, Marathi, Hindi)",
+    branch: "Apollo Hospitals Chennai",
+    image: "/images/rakesh.jpg",
+    fees: 1200,
+    availability: "Monday & Wednesday (2:00 PM – 5:00 PM)"
   }
 ];
 

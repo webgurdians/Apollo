@@ -258,6 +258,18 @@ export const patientsRouter = createRouter({
           status: "Available" as const,
         },
         {
+          name: "Dr. Vishnu Abishek Raju",
+          specialty: "Gastroenterology / GI Medicine",
+          serviceName: "Dr. Vishnu Abishek Raju - Gastroenterology",
+          credentials: "MBBS, MD (Internal Medicine), DM (Gastroenterology)",
+          branch: "Apollo Hospitals Greams Road, Chennai",
+          image: "/images/vishnu.jpg",
+          fees: 1200,
+          availability: "Friday (11:00 AM – 3:00 PM)",
+          registrationNumber: "REG-007", // Assign a unique registration number
+          status: "Available" as const,
+        },
+        {
           name: "Dr. Jatin Soni",
           specialty: "Urology",
           serviceName: "Dr. Jatin Soni - Urology",
@@ -267,6 +279,18 @@ export const patientsRouter = createRouter({
           fees: 1200,
           availability: "Saturday (9:30 AM – 2:30 PM)",
           registrationNumber: "REG-006",
+          status: "Available" as const,
+        },
+        {
+          name: "Dr. Rakesh Shetty",
+          specialty: "Orthopedics-Sports Medicine",
+          serviceName: "Dr. Rakesh Shetty - Orthopedics-Sports Medicine",
+          credentials: "MBBS, DNB (Orthopaedic) Certified in spine and joint Replacement Surgeon (Languages: English, Telugu, Tamil, Kannada, Bengali, Tulu, Marathi, Hindi)",
+          branch: "Apollo Hospitals Chennai",
+          image: "/images/rakesh.jpg",
+          fees: 1200,
+          availability: "Monday & Wednesday (2:00 PM – 5:00 PM)",
+          registrationNumber: "REG-008", // Unique registration number
           status: "Available" as const,
         }
       ];
