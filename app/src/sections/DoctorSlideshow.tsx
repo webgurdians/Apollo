@@ -67,10 +67,10 @@ const fallbackDoctors = [
 ];
 
 interface DoctorSlideshowProps {
-  setSelectedService: (serviceName: string) => void;
+  onSelectDoctor: (serviceName: string, availability: string) => void;
 }
 
-export default function DoctorSlideshow({ setSelectedService }: DoctorSlideshowProps) {
+export default function DoctorSlideshow({ onSelectDoctor }: DoctorSlideshowProps) {
   const { data: dbDoctors } = trpc.patients.listDoctors.useQuery();
   const doctors = dbDoctors && dbDoctors.length > 0
     ? dbDoctors.map(d => ({
@@ -104,12 +104,8 @@ export default function DoctorSlideshow({ setSelectedService }: DoctorSlideshowP
     return () => clearInterval(timer);
   }, [doctors.length]);
 
-  const handleBookNow = (serviceName: string) => {
-    setSelectedService(serviceName);
-    const element = document.getElementById("appointment");
-    if (element) {
-      element.scrollIntoView({ behavior: "smooth" });
-    }
+  const handleBookNow = (serviceName: string, availability: string) => {
+    onSelectDoctor(serviceName, availability);
   };
 
   return (
@@ -218,7 +214,7 @@ export default function DoctorSlideshow({ setSelectedService }: DoctorSlideshowP
 
                   <div className="pt-2">
                     <Button
-                      onClick={() => handleBookNow(doc.serviceName)}
+                      onClick={() => handleBookNow(doc.serviceName, doc.availability)}
                       className="w-full sm:w-auto bg-apollo-blue hover:bg-apollo-dark text-white px-8 py-5 text-base rounded-xl shadow-lg transition-all"
                     >
                       Book Consultation Now

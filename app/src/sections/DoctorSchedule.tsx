@@ -1,6 +1,7 @@
 import { Clock, UserCheck } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { trpc } from "@/providers/trpc";
+import { doesAvailabilityMatchDay } from "@/lib/utils";
 
 const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
@@ -23,7 +24,7 @@ export default function DoctorSchedule() {
     }
 
     const dayDoctors = doctorsList.filter((doc) =>
-      doc.availability?.toLowerCase().includes(day.toLowerCase())
+      doesAvailabilityMatchDay(doc.availability || "", day)
     );
 
     if (dayDoctors.length > 0) {

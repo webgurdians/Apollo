@@ -4,10 +4,10 @@ import { Button } from "@/components/ui/button";
 import { X, Calendar, ArrowRight, Sparkles, ShieldCheck } from "lucide-react";
 
 interface DoctorPopupProps {
-  setSelectedService: (serviceName: string) => void;
+  onSelectDoctor: (serviceName: string, availability: string) => void;
 }
 
-export function DoctorPopup({ setSelectedService }: DoctorPopupProps) {
+export function DoctorPopup({ onSelectDoctor }: DoctorPopupProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { data: popupSetting } = trpc.patients.getPopupSetting.useQuery();
 
@@ -35,7 +35,7 @@ export function DoctorPopup({ setSelectedService }: DoctorPopupProps) {
   const handleBook = () => {
     // Set the selected service in the form state
     const serviceName = doc.serviceName || `${doc.name} - ${doc.specialty}`;
-    setSelectedService(serviceName);
+    onSelectDoctor(serviceName, doc.availability || "");
     
     // Close the popup and save state
     handleClose();

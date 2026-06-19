@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { parseAvailabilityDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -50,9 +51,16 @@ const services = [
 interface AppointmentFormProps {
   selectedService?: string;
   setSelectedService?: (service: string) => void;
+  selectedDate?: Date;
+  setSelectedDate?: (date: Date | undefined) => void;
 }
 
-export default function AppointmentForm({ selectedService: selectedServiceProp, setSelectedService }: AppointmentFormProps = {}) {
+export default function AppointmentForm({
+  selectedService: selectedServiceProp,
+  setSelectedService,
+  selectedDate: selectedDateProp,
+  setSelectedDate,
+}: AppointmentFormProps = {}) {
   const { t } = useTranslation();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -66,7 +74,15 @@ export default function AppointmentForm({ selectedService: selectedServiceProp, 
       setLocalServiceName(val);
     }
   };
-  const [date, setDate] = useState<Date>();
+  const [localDate, setLocalDate] = useState<Date>();
+  const date = selectedDateProp !== undefined ? selectedDateProp : localDate;
+  const setDate = (val: Date | undefined) => {
+    if (setSelectedDate) {
+      setSelectedDate(val);
+    } else {
+      setLocalDate(val);
+    }
+  };
   const [message, setMessage] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"online" | "clinic">("clinic");
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -86,6 +102,21 @@ export default function AppointmentForm({ selectedService: selectedServiceProp, 
         { name: "Health Checkup Package", price: 2999 },
       ]
     : services;
+
+  // Auto pre-populate date when doctor is selected
+  useEffect(() => {
+    if (serviceName && dbDoctors) {
+      const doc = dbDoctors.find(
+        (d) => d.serviceName === serviceName || `${d.name} - ${d.specialty}` === serviceName
+      );
+      if (doc && doc.availability) {
+        const parsed = parseAvailabilityDate(doc.availability);
+        if (parsed) {
+          setDate(parsed);
+        }
+      }
+    }
+  }, [serviceName, dbDoctors]);
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
