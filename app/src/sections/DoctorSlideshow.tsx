@@ -166,7 +166,7 @@ export default function DoctorSlideshow({ onSelectDoctor }: DoctorSlideshowProps
           </div>
 
           {/* Slide Content */}
-          <div className="relative min-h-[420px] transition-all duration-500 ease-in-out">
+          <div className="relative min-h-[300px] md:min-h-[420px] transition-all duration-500 ease-in-out">
             {doctors.map((doc, idx) => (
               <div
                 key={doc.name}
@@ -176,7 +176,7 @@ export default function DoctorSlideshow({ onSelectDoctor }: DoctorSlideshowProps
               >
                 {/* Doctor Photo */}
                 <div className="md:col-span-5 flex justify-center">
-                  <div className="relative w-64 h-64 md:w-80 md:h-80 rounded-2xl overflow-hidden shadow-md border-4 border-apollo-blue/10 bg-gray-50 flex items-center justify-center">
+                  <div className="relative w-48 h-48 md:w-80 md:h-80 rounded-2xl overflow-hidden shadow-md border-4 border-apollo-blue/10 bg-gray-50 flex items-center justify-center">
                     <img
                       src={doc.image}
                       alt={doc.name}

@@ -254,7 +254,7 @@ export function DoctorsSection() {
         </Dialog>
       </div>
 
-      <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
+      <div className="bg-white rounded-xl border shadow-sm overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow className="bg-gray-50">
