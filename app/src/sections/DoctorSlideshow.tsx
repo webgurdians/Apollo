@@ -78,7 +78,7 @@ const fallbackDoctors = [
     name: "Dr. Rakesh Shetty",
     specialty: "Orthopedics-Sports Medicine",
     serviceName: "Dr. Rakesh Shetty - Orthopedics-Sports Medicine",
-    qualifications: "MBBS, DNB (Orthopaedic) Certified in spine and joint Replacement Surgeon (Languages: English, Telugu, Tamil, Kannada, Bengali, Tulu, Marathi, Hindi)",
+    qualifications: "MBBS, DNB (Orthopaedic) Certified in spine and joint Replacement Surgeon",
     branch: "Apollo Hospitals Chennai",
     image: "/images/rakesh.jpg",
     fees: 1200,
