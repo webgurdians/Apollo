@@ -6,21 +6,21 @@ import { eq, desc, and, isNull } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { logActivity } from "./lib/activity";
 
+export const createAppointmentInput = z.object({
+  name: z.string().min(1, "Name is required"),
+  phone: z.string().min(10, "Valid phone number is required"),
+  service: z.string().min(1, "Service is required"),
+  preferredDate: z.string().min(1, "Preferred date is required"),
+  startTime: z.string().optional(),
+  endTime: z.string().optional(),
+  doctorId: z.number().optional(),
+  message: z.string().optional(),
+  paymentMethod: z.enum(["online", "clinic"]).optional().default("clinic"),
+}).strict();
+
 export const appointmentRouter = createRouter({
   create: publicQuery
-    .input(
-      z.object({
-        name: z.string().min(1, "Name is required"),
-        phone: z.string().min(10, "Valid phone number is required"),
-        service: z.string().min(1, "Service is required"),
-        preferredDate: z.string().min(1, "Preferred date is required"),
-        startTime: z.string().optional(),
-        endTime: z.string().optional(),
-        doctorId: z.number().optional(),
-        message: z.string().optional(),
-        paymentMethod: z.enum(["online", "clinic"]).optional().default("clinic"),
-      })
-    )
+    .input(createAppointmentInput)
     .mutation(async ({ input }) => {
       const db = getDb();
 

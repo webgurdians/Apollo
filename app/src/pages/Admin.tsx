@@ -34,23 +34,30 @@ export default function Admin() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-sky-50 to-blue-50">
-      <header className="bg-white border-b sticky top-0 z-40">
+    <div className="min-h-screen bg-[#050814] text-slate-100 relative overflow-hidden">
+      {/* Background neon glows */}
+      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-primary/5 blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-purple-500/5 blur-[120px] pointer-events-none" />
+
+      <header className="backdrop-blur-md bg-card/40 border-b border-white/5 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <h1 className="text-xl font-bold bg-gradient-to-r from-apollo-blue to-apollo-orange bg-clip-text text-transparent">
+          <div className="flex items-center gap-6">
+            <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-purple-400 bg-clip-text text-transparent tracking-wide text-glow">
               Apollo Clinic
             </h1>
-            <span className="px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
-              Admin
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-primary/10 text-primary border border-primary/20">
+              Control Portal
             </span>
+            <svg className="w-24 h-6 text-primary/30 hidden md:block" viewBox="0 0 100 30" fill="none">
+              <path d="M0 15 h30 l3 -8 l4 20 l3 -18 l2 6 h28" stroke="currentColor" strokeWidth="2" className="ecg-line" />
+            </svg>
           </div>
           <div className="flex items-center gap-4">
             <GlobalSearch />
-            <span className="text-sm text-muted-foreground hidden md:inline">
+            <span className="text-sm text-slate-400 hidden md:inline border-l border-white/10 pl-4">
               {user?.username}
             </span>
-            <Button variant="ghost" size="sm" onClick={logout}>
+            <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white hover:bg-white/5" onClick={logout}>
               <LogOut className="w-4 h-4 mr-2" />
               Logout
             </Button>
@@ -58,17 +65,21 @@ export default function Admin() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">Dashboard</h2>
-          <p className="text-muted-foreground mt-1">Manage appointments, patients, billing, and more.</p>
+      <main className="max-w-7xl mx-auto px-4 py-8 relative z-10">
+        <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <h2 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
+              System Dashboard
+            </h2>
+            <p className="text-slate-400 text-sm mt-0.5">Live clinical statistics and patient operations center.</p>
+          </div>
         </div>
 
         <StatsCards stats={stats} loading={statsLoading} />
 
         <Tabs defaultValue="appointments" className="space-y-6">
-          <div className="overflow-x-auto">
-            <TabsList className="bg-white border shadow-sm inline-flex">
+          <div className="overflow-x-auto pb-1">
+            <TabsList className="bg-card/60 border border-white/5 backdrop-blur-md text-slate-400 p-1 rounded-xl shadow-inner inline-flex gap-1">
               <TabsTrigger value="appointments">Appointments</TabsTrigger>
               <TabsTrigger value="patients">Patient Queue</TabsTrigger>
               <TabsTrigger value="billing">Billing</TabsTrigger>

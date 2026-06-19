@@ -33,7 +33,11 @@ describe("TRPC API Router Integration Tests", () => {
           try {
             sqlite.exec(stmt);
           } catch (err: unknown) {
-            if (err instanceof Error && !err.message.includes("already exists")) {
+            if (
+              err instanceof Error &&
+              !err.message.includes("already exists") &&
+              !err.message.includes("duplicate column")
+            ) {
               throw err;
             }
           }
