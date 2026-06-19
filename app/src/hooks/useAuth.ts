@@ -27,9 +27,9 @@ export function useAuth(options?: UseAuthOptions) {
   });
 
   const logoutMutation = trpc.auth.logout.useMutation({
-    onSettled: async () => {
-      await utils.invalidate();
+    onSettled: () => {
       navigate(redirectPath);
+      utils.invalidate();
     },
   });
 
