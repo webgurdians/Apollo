@@ -45,7 +45,9 @@ const paymentColors: Record<string, string> = {
 };
 
 export default function AppointmentsSection() {
-  const { data: appointments, isLoading } = trpc.appointment.list.useQuery();
+  const { data: appointments, isLoading } = trpc.appointment.list.useQuery(undefined, {
+    refetchInterval: 5000,
+  });
   const utils = trpc.useUtils();
 
   const updateStatus = trpc.appointment.updateStatus.useMutation({

@@ -22,7 +22,9 @@ import { useSessionTimeout } from "@/hooks/useSessionTimeout";
 
 export default function Admin() {
   const { user, logout } = useAuth();
-  const { data: stats, isLoading: statsLoading } = trpc.appointment.stats.useQuery();
+  const { data: stats, isLoading: statsLoading } = trpc.appointment.stats.useQuery(undefined, {
+    refetchInterval: 5000,
+  });
   const [prescriptionPatientId, setPrescriptionPatientId] = useState<number | null>(null);
   const [prescriptionOpen, setPrescriptionOpen] = useState(false);
 

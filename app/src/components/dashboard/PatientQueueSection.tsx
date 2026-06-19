@@ -36,7 +36,9 @@ interface PatientQueueSectionProps {
 }
 
 export default function PatientQueueSection({ onViewPrescription }: PatientQueueSectionProps) {
-  const { data: patients, isLoading } = trpc.patients.list.useQuery();
+  const { data: patients, isLoading } = trpc.patients.list.useQuery(undefined, {
+    refetchInterval: 5000,
+  });
   const { data: doctors } = trpc.patients.listDoctors.useQuery();
   const utils = trpc.useUtils();
 

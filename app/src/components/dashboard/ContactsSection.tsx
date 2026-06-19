@@ -3,7 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Trash2, Phone } from "lucide-react";
 
 export function ContactsSection() {
-  const { data: contacts, isLoading } = trpc.contacts.list.useQuery();
+  const { data: contacts, isLoading } = trpc.contacts.list.useQuery(undefined, {
+    refetchInterval: 5000,
+  });
   const utils = trpc.useUtils();
   const deleteContact = trpc.contacts.delete.useMutation({
     onSuccess: () => utils.contacts.list.invalidate(),
