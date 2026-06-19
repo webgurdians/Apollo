@@ -34,7 +34,7 @@ export default function Admin() {
   };
 
   return (
-    <div className="min-h-screen bg-[#050814] text-slate-100 relative overflow-hidden">
+    <div className="min-h-screen bg-[#050814] text-slate-100 relative overflow-hidden admin-theme">
       {/* Background neon glows */}
       <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-primary/5 blur-[120px] pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-purple-500/5 blur-[120px] pointer-events-none" />
