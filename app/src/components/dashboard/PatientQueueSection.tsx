@@ -23,22 +23,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Loader2, UserPlus, Search, Eye, AlertTriangle } from "lucide-react";
-
-const statusColors: Record<string, string> = {
-  waiting: "bg-yellow-100 text-yellow-700",
-  with_doctor: "bg-blue-100 text-blue-700",
-  completed: "bg-green-100 text-green-700",
-};
+import { Loader2, UserPlus, Search, AlertTriangle } from "lucide-react";
+import { format } from "date-fns";
+import { Badge } from "@/components/ui/badge";
 
 interface PatientQueueSectionProps {
   onViewPrescription?: (patientId: number) => void;
 }
 
 export default function PatientQueueSection({ onViewPrescription }: PatientQueueSectionProps) {
-  const { data: patients, isLoading } = trpc.patients.list.useQuery(undefined, {
-    refetchInterval: 5000,
-  });
+  const { data: patients, isLoading } = trpc.patients.list.useQuery();
   const { data: doctors } = trpc.patients.listDoctors.useQuery();
   const utils = trpc.useUtils();
 
@@ -49,19 +43,18 @@ export default function PatientQueueSection({ onViewPrescription }: PatientQueue
   const [registerPhone, setRegisterPhone] = useState("");
   const [registerConcern, setRegisterConcern] = useState("");
   const [registerDoctorId, setRegisterDoctorId] = useState("");
+  const [registerDate, setRegisterDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [searchTerm, setSearchTerm] = useState("");
-  const [duplicatePatient, setDuplicatePatient] = useState<{
-    id: number; name: string; age: number; gender: string; phone: string; concern: string; createdAt: string;
-  } | null>(null);
 
   const { data: existingPatients } = trpc.patients.findByPhone.useQuery(
     { phone: registerPhone },
     { enabled: registerPhone.length >= 10 && showRegister }
   );
 
-  const createPatient = trpc.patients.create.useMutation({
+  const bookWalkin = trpc.appointment.create.useMutation({
     onSuccess: () => {
       utils.patients.list.invalidate();
+      utils.appointment.list.invalidate();
       setShowRegister(false);
       setRegisterName("");
       setRegisterAge("");
@@ -69,25 +62,8 @@ export default function PatientQueueSection({ onViewPrescription }: PatientQueue
       setRegisterPhone("");
       setRegisterConcern("");
       setRegisterDoctorId("");
+      setRegisterDate(format(new Date(), "yyyy-MM-dd"));
     },
-    onError: (error) => {
-      try {
-        const parsed = JSON.parse(error.message);
-        if (parsed.type === "DUPLICATE_PATIENT") {
-          setDuplicatePatient(parsed.existingPatient);
-        }
-      } catch {
-        // Not a JSON error, show normally
-      }
-    },
-  });
-
-  const updatePatientStatus = trpc.patients.updateStatus.useMutation({
-    onSuccess: () => utils.patients.list.invalidate(),
-  });
-
-  const assignDoctor = trpc.patients.assignDoctor.useMutation({
-    onSuccess: () => utils.patients.list.invalidate(),
   });
 
   const filteredPatients = patients?.filter(
@@ -110,7 +86,7 @@ export default function PatientQueueSection({ onViewPrescription }: PatientQueue
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Search patients..."
+            placeholder="Search name or mobile number..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-9"
@@ -118,7 +94,7 @@ export default function PatientQueueSection({ onViewPrescription }: PatientQueue
         </div>
         <Button onClick={() => setShowRegister(true)}>
           <UserPlus className="w-4 h-4 mr-2" />
-          Register Patient
+          Book Walk-in / Register
         </Button>
       </div>
 
@@ -127,84 +103,61 @@ export default function PatientQueueSection({ onViewPrescription }: PatientQueue
           <TableHeader>
             <TableRow className="bg-gray-50">
               <TableHead>ID</TableHead>
-              <TableHead>Name</TableHead>
-              <TableHead>Age/Gender</TableHead>
-              <TableHead>Phone</TableHead>
-              <TableHead>Concern</TableHead>
+              <TableHead>Patient Details</TableHead>
+              <TableHead>Latest Concern</TableHead>
+              <TableHead>Assigned Doctor</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Doctor</TableHead>
-              <TableHead>Added</TableHead>
+              <TableHead>Registered</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredPatients?.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                   No patients found
                 </TableCell>
               </TableRow>
             ) : (
               filteredPatients?.map((patient) => (
                 <TableRow key={patient.id}>
-                  <TableCell className="font-medium">#{patient.id}</TableCell>
-                  <TableCell className="font-medium">{patient.name}</TableCell>
-                  <TableCell>{patient.age}y / {patient.gender}</TableCell>
-                  <TableCell>{patient.phone}</TableCell>
+                  <TableCell className="font-semibold">#{patient.id}</TableCell>
+                  <TableCell>
+                    <div className="font-medium">{patient.name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {patient.age}y / {patient.gender} • {patient.phone}
+                    </div>
+                  </TableCell>
                   <TableCell className="max-w-[200px] truncate">{patient.concern}</TableCell>
                   <TableCell>
-                    <Select
-                      value={patient.status}
-                      onValueChange={(val: "waiting" | "with_doctor" | "completed") =>
-                        updatePatientStatus.mutate({ id: patient.id, status: val })
-                      }
-                    >
-                      <SelectTrigger className={`w-32 h-8 text-xs ${statusColors[patient.status]}`}>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="waiting">Waiting</SelectItem>
-                        <SelectItem value="with_doctor">With Doctor</SelectItem>
-                        <SelectItem value="completed">Completed</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    {patient.doctorName ? (
+                      <div className="text-sm font-medium">{patient.doctorName}</div>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">Unassigned</span>
+                    )}
                   </TableCell>
                   <TableCell>
-                    <Select
-                      value={patient.assignedDoctorId?.toString() || ""}
-                      onValueChange={(val) =>
-                        val && assignDoctor.mutate({
-                          patientId: patient.id,
-                          assignedDoctorId: parseInt(val),
-                        })
-                      }
-                    >
-                      <SelectTrigger className="w-32 h-8 text-xs">
-                        <SelectValue placeholder="Assign" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="">Unassigned</SelectItem>
-                        {doctors?.map((doc) => (
-                          <SelectItem key={doc.id} value={doc.id.toString()}>
-                            {doc.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Badge variant="secondary" className={
+                      patient.status === "completed" ? "bg-green-100 text-green-700 capitalize hover:bg-green-100" :
+                      patient.status === "with_doctor" ? "bg-blue-100 text-blue-700 capitalize hover:bg-blue-100" :
+                      "bg-yellow-100 text-yellow-700 capitalize hover:bg-yellow-100"
+                    }>
+                      {patient.status.replace("_", " ")}
+                    </Badge>
                   </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
+                  <TableCell className="text-xs text-muted-foreground">
                     {patient.createdAt
-                      ? new Date(patient.createdAt).toLocaleDateString()
+                      ? format(new Date(patient.createdAt), "dd MMM yyyy, hh:mm a")
                       : "—"}
                   </TableCell>
                   <TableCell className="text-right">
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       size="sm"
-                      className="h-8 w-8 p-0"
+                      className="h-8 border-apollo-blue text-apollo-blue hover:bg-apollo-blue/5"
                       onClick={() => onViewPrescription?.(patient.id)}
                     >
-                      <Eye className="w-4 h-4" />
+                      View History & Timeline
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -214,42 +167,10 @@ export default function PatientQueueSection({ onViewPrescription }: PatientQueue
         </Table>
       </div>
 
-      <Dialog open={!!duplicatePatient} onOpenChange={(o) => { if (!o) setDuplicatePatient(null); }}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-amber-600" />
-              Existing patient found
-            </DialogTitle>
-          </DialogHeader>
-          {duplicatePatient && (
-            <div className="space-y-4">
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                <p className="font-medium text-lg">{duplicatePatient.name}</p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Phone: {duplicatePatient.phone} · Age: {duplicatePatient.age} · {duplicatePatient.gender}
-                </p>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                A patient with this phone number already exists. Do not create duplicates.
-              </p>
-              <div className="flex gap-3">
-                <Button variant="outline" className="flex-1" onClick={() => setDuplicatePatient(null)}>
-                  Go back
-                </Button>
-                <Button className="flex-1" onClick={() => { onViewPrescription?.(duplicatePatient.id); setDuplicatePatient(null); setShowRegister(false); }}>
-                  View profile
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
       <Dialog open={showRegister} onOpenChange={setShowRegister}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Register New Patient</DialogTitle>
+            <DialogTitle>Book Walk-in / Register Patient</DialogTitle>
           </DialogHeader>
           {existingPatients && existingPatients.length > 0 && (
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-3">
@@ -273,13 +194,18 @@ export default function PatientQueueSection({ onViewPrescription }: PatientQueue
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              createPatient.mutate({
+              bookWalkin.mutate({
                 name: registerName,
+                phone: registerPhone,
                 age: parseInt(registerAge),
                 gender: registerGender,
-                phone: registerPhone,
-                concern: registerConcern,
-                assignedDoctorId: registerDoctorId ? parseInt(registerDoctorId) : undefined,
+                service: registerDoctorId
+                  ? (doctors?.find(d => d.id === parseInt(registerDoctorId))?.serviceName || "OPD Consultation - General Physician")
+                  : "OPD Consultation - General Physician",
+                preferredDate: registerDate,
+                message: registerConcern,
+                doctorId: registerDoctorId ? parseInt(registerDoctorId) : undefined,
+                paymentMethod: "clinic",
               });
             }}
             className="space-y-4"
@@ -306,7 +232,7 @@ export default function PatientQueueSection({ onViewPrescription }: PatientQueue
               </div>
               <div>
                 <label className="text-sm font-medium mb-1 block">Gender</label>
-                <Select value={registerGender} onValueChange={setRegisterGender}>
+                <Select value={registerGender} onValueChange={setRegisterGender} required>
                   <SelectTrigger>
                     <SelectValue placeholder="Select" />
                   </SelectTrigger>
@@ -319,25 +245,34 @@ export default function PatientQueueSection({ onViewPrescription }: PatientQueue
               </div>
             </div>
             <div>
-              <label className="text-sm font-medium mb-1 block">Phone</label>
+              <label className="text-sm font-medium mb-1 block">Phone (Contact No)</label>
               <Input
                 value={registerPhone}
                 onChange={(e) => setRegisterPhone(e.target.value)}
-                placeholder="Phone number"
+                placeholder="10-digit phone number"
                 required
               />
             </div>
             <div>
-              <label className="text-sm font-medium mb-1 block">Concern</label>
+              <label className="text-sm font-medium mb-1 block">Date</label>
+              <Input
+                type="date"
+                value={registerDate}
+                onChange={(e) => setRegisterDate(e.target.value)}
+                required
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1 block">Issue / Concern</label>
               <Input
                 value={registerConcern}
                 onChange={(e) => setRegisterConcern(e.target.value)}
-                placeholder="Chief complaint"
+                placeholder="Reason for appointment"
                 required
               />
             </div>
             <div>
-              <label className="text-sm font-medium mb-1 block">Assign Doctor (optional)</label>
+              <label className="text-sm font-medium mb-1 block">Select Doctor (optional)</label>
               <Select value={registerDoctorId} onValueChange={setRegisterDoctorId}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select doctor" />
@@ -351,8 +286,8 @@ export default function PatientQueueSection({ onViewPrescription }: PatientQueue
                 </SelectContent>
               </Select>
             </div>
-            <Button type="submit" className="w-full">
-              Register Patient
+            <Button type="submit" className="w-full" disabled={bookWalkin.isPending}>
+              {bookWalkin.isPending ? "Booking..." : "Book Walk-in / Register"}
             </Button>
           </form>
         </DialogContent>

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { createRouter, publicQuery, staffQuery, clinicStaffQuery } from "./middleware";
 import { getDb } from "./queries/connection";
-import { appointments, contacts, doctors, bills } from "@db/schema";
+import { appointments, contacts, doctors, bills, patients } from "@db/schema";
 import { eq, desc, and, isNull } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { logActivity } from "./lib/activity";
@@ -16,6 +16,8 @@ export const createAppointmentInput = z.object({
   doctorId: z.number().optional(),
   message: z.string().optional(),
   paymentMethod: z.enum(["online", "clinic"]).optional().default("clinic"),
+  age: z.coerce.number().optional(),
+  gender: z.string().optional(),
 }).strict();
 
 async function ensureBillCreated(db: any, appointmentId: number, paymentMethod: "online" | "cash" | "upi") {
@@ -124,6 +126,37 @@ export const appointmentRouter = createRouter({
         }
       }
 
+      // Upsert Patient Profile
+      const existingPatients = await db
+        .select()
+        .from(patients)
+        .where(and(eq(patients.phone, input.phone), isNull(patients.deletedAt)))
+        .limit(1);
+
+      if (existingPatients.length > 0) {
+        await db
+          .update(patients)
+          .set({
+            name: input.name,
+            age: input.age !== undefined ? input.age : existingPatients[0].age,
+            gender: input.gender || existingPatients[0].gender,
+            concern: input.message || existingPatients[0].concern,
+            assignedDoctorId: doctorId || existingPatients[0].assignedDoctorId,
+            updatedAt: new Date(),
+          })
+          .where(eq(patients.id, existingPatients[0].id));
+      } else {
+        await db.insert(patients).values({
+          name: input.name,
+          age: input.age ?? 30,
+          gender: input.gender || "Not Specified",
+          phone: input.phone,
+          concern: input.message || input.service,
+          status: "waiting",
+          assignedDoctorId: doctorId,
+        });
+      }
+
       const isPaid = input.paymentMethod === "online";
       const [insertedApt] = await db.insert(appointments).values({
         name: input.name,
@@ -133,6 +166,7 @@ export const appointmentRouter = createRouter({
         startTime: input.startTime ? new Date(input.startTime) : null,
         endTime: input.endTime ? new Date(input.endTime) : null,
         doctorId: doctorId,
+        age: input.age || null,
         message: input.message || null,
         status: isPaid ? "confirmed" : "pending",
         paymentStatus: isPaid ? "paid" : "pending",
@@ -157,6 +191,7 @@ export const appointmentRouter = createRouter({
         startTime: appointments.startTime,
         endTime: appointments.endTime,
         doctorId: appointments.doctorId,
+        age: appointments.age,
         message: appointments.message,
         status: appointments.status,
         paymentStatus: appointments.paymentStatus,

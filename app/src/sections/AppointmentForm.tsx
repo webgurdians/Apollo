@@ -64,6 +64,7 @@ export default function AppointmentForm({
   const { t } = useTranslation();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [age, setAge] = useState("");
   const [localServiceName, setLocalServiceName] = useState("");
 
   const serviceName = selectedServiceProp !== undefined ? selectedServiceProp : localServiceName;
@@ -121,6 +122,11 @@ export default function AppointmentForm({
   const validate = () => {
     const newErrors: Record<string, string> = {};
     if (!name.trim()) newErrors.name = t("appointment.nameError");
+    if (!age.trim()) {
+      newErrors.age = t("appointment.ageError");
+    } else if (isNaN(Number(age)) || Number(age) <= 0) {
+      newErrors.age = t("appointment.ageInvalid");
+    }
     if (!phone.trim()) {
       newErrors.phone = t("appointment.phoneError");
     } else if (!/^[0-9]{10,12}$/.test(phone.replace(/\D/g, ""))) {
@@ -135,7 +141,7 @@ export default function AppointmentForm({
   const handleBookingSuccess = () => {
     setSubmitted(true);
     // Open WhatsApp to send pending approval message to the clinic (simulating automated messaging with click-to-chat)
-    const whatsappText = `Hi Apollo Aranghata, I have submitted an appointment request.\n*Name:* ${name}\n*Phone:* ${phone}\n*Service:* ${serviceName}\n*Preferred Date:* ${date ? format(date, "dd MMM yyyy") : ""}\n*Payment:* ${paymentMethod === "online" ? "Paid Online" : "Pay at Clinic"}\n\nPlease confirm my appointment.`;
+    const whatsappText = `Hi Apollo Aranghata, I have submitted an appointment request.\n*Name:* ${name}\n*Age:* ${age}\n*Phone:* ${phone}\n*Service:* ${serviceName}\n*Preferred Date:* ${date ? format(date, "dd MMM yyyy") : ""}\n*Payment:* ${paymentMethod === "online" ? "Paid Online" : "Pay at Clinic"}\n\nPlease confirm my appointment.`;
     window.open(
       `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(whatsappText)}`,
       "_blank"
@@ -167,6 +173,7 @@ export default function AppointmentForm({
             await createAppointment.mutateAsync({
               name: name.trim(),
               phone: phone.trim(),
+              age: age ? Number(age) : undefined,
               service: serviceName,
               preferredDate: date!.toISOString().split("T")[0],
               message: message.trim() || undefined,
@@ -182,6 +189,7 @@ export default function AppointmentForm({
         await createAppointment.mutateAsync({
           name: name.trim(),
           phone: phone.trim(),
+          age: age ? Number(age) : undefined,
           service: serviceName,
           preferredDate: date!.toISOString().split("T")[0],
           message: message.trim() || undefined,
@@ -231,6 +239,7 @@ export default function AppointmentForm({
                   setSubmitted(false);
                   setName("");
                   setPhone("");
+                  setAge("");
                   setServiceName("");
                   setDate(undefined);
                   setMessage("");
@@ -310,6 +319,26 @@ export default function AppointmentForm({
                 />
                 {errors.name && (
                   <p className="text-xs text-red-500">{errors.name}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="age" className="flex items-center gap-2">
+                  <User className="w-4 h-4 text-muted-foreground" />
+                  {t("appointment.age")}
+                </Label>
+                <Input
+                  id="age"
+                  type="number"
+                  placeholder={t("appointment.agePlaceholder")}
+                  value={age}
+                  onChange={(e) => {
+                    setAge(e.target.value);
+                    if (errors.age) setErrors((prev) => ({ ...prev, age: "" }));
+                  }}
+                  className={cn(errors.age && "border-red-500 focus-visible:ring-red-500")}
+                />
+                {errors.age && (
+                  <p className="text-xs text-red-500">{errors.age}</p>
                 )}
               </div>
               <div className="space-y-2">

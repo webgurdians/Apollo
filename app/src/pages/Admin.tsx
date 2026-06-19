@@ -2,7 +2,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { trpc } from "@/providers/trpc";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { LogOut, History, Shield, FileText, MessageSquare, Search } from "lucide-react";
+import { LogOut, History, Shield, FileText, MessageSquare } from "lucide-react";
 import { useState } from "react";
 import StatsCards from "@/components/dashboard/StatsCards";
 import AppointmentsSection from "@/components/dashboard/AppointmentsSection";
@@ -72,7 +72,7 @@ export default function Admin() {
           <div className="overflow-x-auto">
             <TabsList className="bg-white border shadow-sm inline-flex">
               <TabsTrigger value="appointments">Appointments</TabsTrigger>
-              <TabsTrigger value="patients">Patient Queue</TabsTrigger>
+              <TabsTrigger value="patients">Patients / History</TabsTrigger>
               <TabsTrigger value="billing">Billing</TabsTrigger>
               <TabsTrigger value="contacts">Enquiries</TabsTrigger>
               <TabsTrigger value="staff">Staff</TabsTrigger>

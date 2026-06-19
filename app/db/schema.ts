@@ -38,6 +38,7 @@ export const appointments = sqliteTable("appointments", {
   startTime: integer("startTime", { mode: "timestamp" }),
   endTime: integer("endTime", { mode: "timestamp" }),
   doctorId: integer("doctorId").references(() => doctors.id, { onDelete: "set null" }),
+  age: integer("age"),
   message: text("message"),
   status: text("status", { enum: ["pending", "confirmed", "completed", "cancelled"] })
     .default("pending")

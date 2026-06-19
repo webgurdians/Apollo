@@ -40,7 +40,7 @@ const fallbackDoctors = [
     serviceName: "Dr. Jothi Parthasarathy S - Neonatology",
     qualifications: "MBBS, MD (Paediatrics)",
     branch: "Apollo Children Hospitals Greams Road, Chennai",
-    image: "/images/jothi.jpg",
+    image: "/images/vishnu.jpg",
     fees: 1200,
     availability: "Thursday (10:00 AM – 2:00 PM)"
   },
@@ -50,7 +50,7 @@ const fallbackDoctors = [
     serviceName: "Dr. Vishnu Abishek Raju - Gastroenterology",
     qualifications: "MBBS, MD (Internal Medicine), DM (Gastroenterology)",
     branch: "Apollo Hospitals Greams Road, Chennai",
-    image: "/images/vishnu.jpg",
+    image: "/images/jothi.jpg",
     fees: 1200,
     availability: "Friday (11:00 AM – 3:00 PM)"
   },

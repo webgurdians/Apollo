@@ -409,11 +409,11 @@ describe("TRPC API Router Integration Tests", () => {
 
       // Verify patient in list
       const patientsList = await adminCaller.patients.list();
-      expect(patientsList.length).toBe(1);
-      expect(patientsList[0].name).toBe("Jane Smith");
-      expect(patientsList[0].status).toBe("waiting");
+      const jane = patientsList.find(p => p.name === "Jane Smith");
+      expect(jane).toBeDefined();
+      expect(jane?.status).toBe("waiting");
 
-      const patientId = patientsList[0].id;
+      const patientId = jane!.id;
 
       // Get Doctors
       const doctorsList = await adminCaller.patients.listDoctors();

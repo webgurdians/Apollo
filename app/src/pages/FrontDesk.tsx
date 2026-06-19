@@ -52,7 +52,7 @@ export default function FrontDesk() {
   const { user, logout, isLoading: authLoading } = useAuth();
   const { data: stats, isLoading: statsLoading } = trpc.appointment.stats.useQuery();
 
-  // Patient queue
+  // Patient queue / history
   const { data: patients } = trpc.patients.list.useQuery();
   const { data: doctors } = trpc.patients.listDoctors.useQuery();
   const utils = trpc.useUtils();
@@ -63,6 +63,7 @@ export default function FrontDesk() {
   const [registerPhone, setRegisterPhone] = useState("");
   const [registerConcern, setRegisterConcern] = useState("");
   const [registerDoctorId, setRegisterDoctorId] = useState("");
+  const [registerDate, setRegisterDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedPatientId, setSelectedPatientId] = useState<number | null>(null);
   const [prescriptionOpen, setPrescriptionOpen] = useState(false);
@@ -84,9 +85,10 @@ export default function FrontDesk() {
     id: number; name: string; age: number; gender: string; phone: string; concern: string; createdAt: string;
   } | null>(null);
 
-  const createPatient = trpc.patients.create.useMutation({
+  const bookWalkin = trpc.appointment.create.useMutation({
     onSuccess: () => {
       utils.patients.list.invalidate();
+      utils.appointment.list.invalidate();
       setShowRegister(false);
       setRegisterName("");
       setRegisterAge("");
@@ -94,22 +96,10 @@ export default function FrontDesk() {
       setRegisterPhone("");
       setRegisterConcern("");
       setRegisterDoctorId("");
-    },
-    onError: (error) => {
-      try {
-        const parsed = JSON.parse(error.message);
-        if (parsed.type === "DUPLICATE_PATIENT") {
-          setDuplicatePatient(parsed.existingPatient);
-        }
-      } catch {
-        // Not a JSON error, let it show normally
-      }
+      setRegisterDate(format(new Date(), "yyyy-MM-dd"));
     },
   });
 
-  const assignDoctor = trpc.patients.assignDoctor.useMutation({
-    onSuccess: () => utils.patients.list.invalidate(),
-  });
 
   const updateStatus = trpc.billing.updateStatus.useMutation({
     onSuccess: () => utils.billing.list.invalidate(),
@@ -238,7 +228,7 @@ export default function FrontDesk() {
         <Tabs defaultValue="appointments" className="space-y-6">
           <TabsList className="bg-white border shadow-sm">
             <TabsTrigger value="appointments">Appointments</TabsTrigger>
-            <TabsTrigger value="patients">Patient Queue</TabsTrigger>
+            <TabsTrigger value="patients">Patients / History</TabsTrigger>
             {import.meta.env.VITE_ENABLE_BILLING === "true" && (
               <TabsTrigger value="billing">Billing</TabsTrigger>
             )}
@@ -255,7 +245,7 @@ export default function FrontDesk() {
                 <div className="relative flex-1 max-w-sm">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
-                    placeholder="Search patients..."
+                    placeholder="Search name or mobile number..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-9"
@@ -263,7 +253,7 @@ export default function FrontDesk() {
                 </div>
                 <Button onClick={() => setShowRegister(true)}>
                   <UserPlus className="w-4 h-4 mr-2" />
-                  Register Patient
+                  Book Walk-in / Register
                 </Button>
               </div>
 
@@ -272,74 +262,59 @@ export default function FrontDesk() {
                   <TableHeader>
                     <TableRow className="bg-gray-50">
                       <TableHead>ID</TableHead>
-                      <TableHead>Patient</TableHead>
-                      <TableHead>Concern</TableHead>
-                      <TableHead>Doctor</TableHead>
+                      <TableHead>Patient Details</TableHead>
+                      <TableHead>Latest Concern</TableHead>
+                      <TableHead>Assigned Doctor</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Rx</TableHead>
-                      <TableHead>Added</TableHead>
+                      <TableHead>Registered</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredPatients?.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={8} className="text-center text-muted-foreground py-8">No patients found</TableCell>
+                        <TableCell colSpan={7} className="text-center text-muted-foreground py-8">No patients found</TableCell>
                       </TableRow>
                     ) : (
                       filteredPatients?.map((patient) => {
-                        const rx = patient.prescription;
                         return (
                           <TableRow key={patient.id}>
                             <TableCell className="font-semibold">#{patient.id}</TableCell>
                             <TableCell>
                               <div className="font-medium">{patient.name}</div>
-                              <div className="text-xs text-muted-foreground">{patient.age}y / {patient.gender} • {patient.phone}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {patient.age}y / {patient.gender} • {patient.phone}
+                              </div>
                             </TableCell>
                             <TableCell className="max-w-[200px] truncate">{patient.concern}</TableCell>
                             <TableCell>
-                              <Select
-                                value={patient.assignedDoctorId?.toString() || "none"}
-                                onValueChange={(val) => assignDoctor.mutate({ id: patient.id, doctorId: val !== "none" ? parseInt(val) : null })}
-                              >
-                                <SelectTrigger className="w-36 h-8 text-xs">
-                                  <SelectValue placeholder="Assign" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="none">Unassigned</SelectItem>
-                                  {doctors?.map((doc) => (
-                                    <SelectItem key={doc.id} value={doc.id.toString()}>{doc.name}</SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
+                              {patient.doctorName ? (
+                                <div className="text-sm font-medium">{patient.doctorName}</div>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">Unassigned</span>
+                              )}
                             </TableCell>
                             <TableCell>
                               <Badge variant="secondary" className={
-                                patient.status === "waiting" ? "bg-yellow-100 text-yellow-700 capitalize" :
-                                patient.status === "with_doctor" ? "bg-blue-100 text-blue-700 capitalize" :
-                                "bg-green-100 text-green-700 capitalize"
+                                patient.status === "completed" ? "bg-green-100 text-green-700 capitalize hover:bg-green-100" :
+                                patient.status === "with_doctor" ? "bg-blue-100 text-blue-700 capitalize hover:bg-blue-100" :
+                                "bg-yellow-100 text-yellow-700 capitalize hover:bg-yellow-100"
                               }>
                                 {patient.status.replace("_", " ")}
                               </Badge>
                             </TableCell>
-                            <TableCell>
-                              {rx ? (
-                                <Badge className="bg-green-100 text-green-700 cursor-pointer" onClick={() => handleViewPrescription(patient.id)}>
-                                  View Rx
-                                </Badge>
-                              ) : (
-                                <span className="text-xs text-muted-foreground">—</span>
-                              )}
-                            </TableCell>
                             <TableCell className="text-xs text-muted-foreground">
-                              {patient.createdAt ? format(new Date(patient.createdAt), "hh:mm a") : "—"}
+                              {patient.createdAt ? format(new Date(patient.createdAt), "dd MMM yyyy, hh:mm a") : "—"}
                             </TableCell>
                             <TableCell className="text-right">
-                              {rx && (
-                                <Button variant="outline" size="sm" className="h-8 border-apollo-blue text-apollo-blue" onClick={() => handleViewPrescription(patient.id)}>
-                                  View Rx
-                                </Button>
-                              )}
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-8 border-apollo-blue text-apollo-blue hover:bg-apollo-blue/5"
+                                onClick={() => handleViewPrescription(patient.id)}
+                              >
+                                View History & Timeline
+                              </Button>
                             </TableCell>
                           </TableRow>
                         );
@@ -398,7 +373,7 @@ export default function FrontDesk() {
               <Dialog open={showRegister} onOpenChange={setShowRegister}>
                 <DialogContent className="sm:max-w-md">
                   <DialogHeader>
-                    <DialogTitle>Register New Patient</DialogTitle>
+                    <DialogTitle>Book Walk-in / Register Patient</DialogTitle>
                   </DialogHeader>
                   {existingPatients && existingPatients.length > 0 && (
                     <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-3">
@@ -422,13 +397,18 @@ export default function FrontDesk() {
                   <form
                     onSubmit={(e) => {
                       e.preventDefault();
-                      createPatient.mutate({
+                      bookWalkin.mutate({
                         name: registerName,
+                        phone: registerPhone,
                         age: parseInt(registerAge),
                         gender: registerGender,
-                        phone: registerPhone,
-                        concern: registerConcern,
-                        assignedDoctorId: registerDoctorId ? parseInt(registerDoctorId) : undefined,
+                        service: registerDoctorId
+                          ? (doctors?.find(d => d.id === parseInt(registerDoctorId))?.serviceName || "OPD Consultation - General Physician")
+                          : "OPD Consultation - General Physician",
+                        preferredDate: registerDate,
+                        message: registerConcern,
+                        doctorId: registerDoctorId ? parseInt(registerDoctorId) : undefined,
+                        paymentMethod: "clinic",
                       });
                     }}
                     className="space-y-4"
@@ -444,7 +424,7 @@ export default function FrontDesk() {
                       </div>
                       <div>
                         <label className="text-sm font-medium mb-1 block">Gender</label>
-                        <Select value={registerGender} onValueChange={setRegisterGender}>
+                        <Select value={registerGender} onValueChange={setRegisterGender} required>
                           <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="Male">Male</SelectItem>
@@ -455,15 +435,19 @@ export default function FrontDesk() {
                       </div>
                     </div>
                     <div>
-                      <label className="text-sm font-medium mb-1 block">Phone</label>
-                      <Input value={registerPhone} onChange={(e) => setRegisterPhone(e.target.value)} placeholder="Phone number" required />
+                      <label className="text-sm font-medium mb-1 block">Phone (Contact No)</label>
+                      <Input value={registerPhone} onChange={(e) => setRegisterPhone(e.target.value)} placeholder="10-digit phone number" required />
                     </div>
                     <div>
-                      <label className="text-sm font-medium mb-1 block">Concern</label>
-                      <Input value={registerConcern} onChange={(e) => setRegisterConcern(e.target.value)} placeholder="Chief complaint" required />
+                      <label className="text-sm font-medium mb-1 block">Date</label>
+                      <Input type="date" value={registerDate} onChange={(e) => setRegisterDate(e.target.value)} required />
                     </div>
                     <div>
-                      <label className="text-sm font-medium mb-1 block">Assign Doctor (optional)</label>
+                      <label className="text-sm font-medium mb-1 block">Issue / Concern</label>
+                      <Input value={registerConcern} onChange={(e) => setRegisterConcern(e.target.value)} placeholder="Reason for appointment" required />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium mb-1 block">Select Doctor (optional)</label>
                       <Select value={registerDoctorId} onValueChange={setRegisterDoctorId}>
                         <SelectTrigger><SelectValue placeholder="Select doctor" /></SelectTrigger>
                         <SelectContent>
@@ -473,7 +457,9 @@ export default function FrontDesk() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <Button type="submit" className="w-full">Register Patient</Button>
+                    <Button type="submit" className="w-full" disabled={bookWalkin.isPending}>
+                      {bookWalkin.isPending ? "Booking..." : "Book Walk-in / Register"}
+                    </Button>
                   </form>
                 </DialogContent>
               </Dialog>

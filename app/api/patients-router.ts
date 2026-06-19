@@ -2,8 +2,8 @@ import crypto from "crypto";
 import { z } from "zod";
 import { createRouter, publicQuery, authedQuery, frontDeskQuery, staffQuery, adminQuery, clinicStaffQuery } from "./middleware";
 import { getDb } from "./queries/connection";
-import { patients, doctors, users, prescriptions, prescriptionMedicines, prescriptionTests, settings } from "@db/schema";
-import { eq, and, desc, isNull, type SQL } from "drizzle-orm";
+import { patients, doctors, users, prescriptions, prescriptionMedicines, prescriptionTests, settings, appointments, bills } from "@db/schema";
+import { eq, and, desc, isNull, inArray, type SQL } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { logActivity } from "./lib/activity";
 
@@ -239,7 +239,7 @@ export const patientsRouter = createRouter({
           serviceName: "Dr. Jothi Parthasarathy S - Neonatology",
           credentials: "MBBS, MD (Paediatrics)",
           branch: "Apollo Children Hospitals Greams Road, Chennai",
-          image: "/images/jothi.jpg",
+          image: "/images/vishnu.jpg",
           fees: 1200,
           availability: "Thursday (10:00 AM – 2:00 PM)",
           registrationNumber: "REG-004",
@@ -251,7 +251,7 @@ export const patientsRouter = createRouter({
           serviceName: "Dr. Vishnu Abishek Raju - Gastroenterology",
           credentials: "MBBS, MD (Internal Medicine), DM (Gastroenterology)",
           branch: "Apollo Hospitals Greams Road, Chennai",
-          image: "/images/vishnu.jpg",
+          image: "/images/jothi.jpg",
           fees: 1200,
           availability: "Friday (11:00 AM – 3:00 PM)",
           registrationNumber: "REG-005",
@@ -408,7 +408,41 @@ export const patientsRouter = createRouter({
         })
       );
 
-      return { ...patient, prescriptions: enriched };
+      const patientAppointments = await db
+        .select({
+          id: appointments.id,
+          service: appointments.service,
+          preferredDate: appointments.preferredDate,
+          startTime: appointments.startTime,
+          endTime: appointments.endTime,
+          doctorId: appointments.doctorId,
+          status: appointments.status,
+          paymentStatus: appointments.paymentStatus,
+          message: appointments.message,
+          createdAt: appointments.createdAt,
+          doctorName: doctors.name,
+        })
+        .from(appointments)
+        .leftJoin(doctors, eq(appointments.doctorId, doctors.id))
+        .where(and(eq(appointments.phone, patient.phone), isNull(appointments.deletedAt)))
+        .orderBy(desc(appointments.createdAt));
+
+      const appointmentIds = patientAppointments.map((a) => a.id);
+      let patientBills: any[] = [];
+      if (appointmentIds.length > 0) {
+        patientBills = await db
+          .select()
+          .from(bills)
+          .where(and(inArray(bills.appointmentId, appointmentIds), isNull(bills.deletedAt)))
+          .orderBy(desc(bills.createdAt));
+      }
+
+      return {
+        ...patient,
+        prescriptions: enriched,
+        appointments: patientAppointments,
+        bills: patientBills,
+      };
     }),
 
   createDoctor: adminQuery
@@ -628,7 +662,7 @@ export const patientsRouter = createRouter({
         ctx.user,
         "update",
         "setting",
-        null,
+        undefined,
         `Updated doctor popup setting: active=${input.isActive}, doctorId=${input.doctorId}, date=${input.availableDate}`
       );
 
