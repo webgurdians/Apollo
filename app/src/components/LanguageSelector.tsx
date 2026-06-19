@@ -24,6 +24,10 @@ export default function LanguageSelector() {
     setCurrentLang(lang);
   };
 
+  if (typeof window !== "undefined" && window.location.pathname.startsWith("/admin")) {
+    return null;
+  }
+
   return (
     <div className="fixed bottom-6 left-6 z-50 print:hidden">
       <div className="bg-white rounded-full border shadow-xl p-1.5 flex items-center gap-1.5 backdrop-blur-md bg-white/95">

@@ -187,7 +187,7 @@ export default function AppointmentsSection() {
                       className="h-8 w-8 p-0 text-apollo-blue"
                       title="Generate & Send Bill via WhatsApp"
                       onClick={() => {
-                        const price = servicePrices[apt.service] || 500;
+                        const price = (apt as any).doctorFees || servicePrices[apt.service] || 500;
                         if (confirm(`Generate a bill for ₹${price} and send to patient?`)) {
                           createBill.mutate(
                             {
