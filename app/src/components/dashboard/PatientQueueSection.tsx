@@ -253,6 +253,49 @@ export default function PatientQueueSection({ onViewPrescription }: PatientQueue
                 required
               />
             </div>
+             <div>
+              <label className="text-sm font-medium mb-1 block">Select Doctor (optional)</label>
+              <Select value={registerDoctorId} onValueChange={setRegisterDoctorId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select doctor" />
+                </SelectTrigger>
+                <SelectContent>
+                  {doctors?.map((doc) => (
+                    <SelectItem key={doc.id} value={doc.id.toString()}>
+                      {doc.name} — {doc.specialty}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {registerDoctorId && (() => {
+              const doc = doctors?.find(d => d.id === parseInt(registerDoctorId));
+              if (doc && doc.availableDates) {
+                const dates = doc.availableDates.split(",").map(d => d.trim());
+                return (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-2.5 space-y-1">
+                    <span className="text-xs font-semibold text-blue-700 block">Doctor Available Dates:</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {dates.map((dStr) => (
+                        <button
+                          key={dStr}
+                          type="button"
+                          onClick={() => setRegisterDate(dStr)}
+                          className={`text-xs px-2.5 py-1 rounded border transition-colors ${
+                            registerDate === dStr 
+                              ? "bg-apollo-blue text-white border-apollo-blue font-semibold"
+                              : "bg-white text-gray-700 hover:bg-gray-50 border-gray-200"
+                          }`}
+                        >
+                          {dStr}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              }
+              return null;
+            })()}
             <div>
               <label className="text-sm font-medium mb-1 block">Date</label>
               <Input
@@ -270,21 +313,6 @@ export default function PatientQueueSection({ onViewPrescription }: PatientQueue
                 placeholder="Reason for appointment"
                 required
               />
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-1 block">Select Doctor (optional)</label>
-              <Select value={registerDoctorId} onValueChange={setRegisterDoctorId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select doctor" />
-                </SelectTrigger>
-                <SelectContent>
-                  {doctors?.map((doc) => (
-                    <SelectItem key={doc.id} value={doc.id.toString()}>
-                      {doc.name} — {doc.specialty}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
             <Button type="submit" className="w-full" disabled={bookWalkin.isPending}>
               {bookWalkin.isPending ? "Booking..." : "Book Walk-in / Register"}

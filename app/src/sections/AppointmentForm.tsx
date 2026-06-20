@@ -415,11 +415,37 @@ export default function AppointmentForm({
                         setDate(d);
                         if (errors.date) setErrors((prev) => ({ ...prev, date: "" }));
                       }}
-                      disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                      disabled={(date) => {
+                        if (date < new Date(new Date().setHours(0, 0, 0, 0))) return true;
+                        if (serviceName && dbDoctors) {
+                          const doc = dbDoctors.find(
+                            (d) => d.serviceName === serviceName || `${d.name} - ${d.specialty}` === serviceName
+                          );
+                          if (doc && doc.availableDates) {
+                            const allowedDates = doc.availableDates.split(",").map(d => d.trim());
+                            const dateStr = format(date, "yyyy-MM-dd");
+                            return !allowedDates.includes(dateStr);
+                          }
+                        }
+                        return false;
+                      }}
                       initialFocus
                     />
                   </PopoverContent>
                 </Popover>
+                {serviceName && dbDoctors && (() => {
+                  const doc = dbDoctors.find(
+                    (d) => d.serviceName === serviceName || `${d.name} - ${d.specialty}` === serviceName
+                  );
+                  if (doc && doc.availableDates) {
+                    return (
+                      <p className="text-xs font-semibold text-apollo-blue mt-1 bg-apollo-light/60 p-2 rounded border border-apollo-blue/20">
+                        Next Available Dates: {doc.availableDates}
+                      </p>
+                    );
+                  }
+                  return null;
+                })()}
                 {errors.date && (
                   <p className="text-xs text-red-500">{errors.date}</p>
                 )}

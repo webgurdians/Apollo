@@ -114,6 +114,7 @@ export const doctors = sqliteTable("doctors", {
   fees: integer("fees").default(1200),
   availability: text("availability"),
   status: text("status", { enum: ["Available", "Limited", "Not Available"] }).default("Available").notNull(),
+  availableDates: text("availableDates"),
 });
 
 export type Doctor = typeof doctors.$inferSelect;

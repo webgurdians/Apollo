@@ -47,6 +47,7 @@ export function DoctorsSection() {
   const [fees, setFees] = useState(1200);
   const [availability, setAvailability] = useState("");
   const [status, setStatus] = useState<"Available" | "Limited" | "Not Available">("Available");
+  const [availableDates, setAvailableDates] = useState("");
 
   const resetForm = () => {
     setUsername("");
@@ -60,6 +61,7 @@ export function DoctorsSection() {
     setFees(1200);
     setAvailability("");
     setStatus("Available");
+    setAvailableDates("");
     setSelectedDoctor(null);
   };
 
@@ -102,6 +104,7 @@ export function DoctorsSection() {
     setFees(doc.fees ?? 1200);
     setAvailability(doc.availability || "");
     setStatus(doc.status || "Available");
+    setAvailableDates(doc.availableDates || "");
     setShowDialog(true);
   };
 
@@ -148,6 +151,7 @@ export function DoctorsSection() {
                     fees,
                     availability,
                     status,
+                    availableDates: availableDates || undefined,
                   });
                 } else {
                   if (!username || !password) {
@@ -167,6 +171,7 @@ export function DoctorsSection() {
                     fees,
                     availability,
                     status,
+                    availableDates: availableDates || undefined,
                   });
                 }
               }}
@@ -246,6 +251,14 @@ export function DoctorsSection() {
                 </div>
               </div>
 
+              <div>
+                <label className="text-xs font-semibold mb-1 block">Specific Next Available Dates (Comma-separated)</label>
+                <Input value={availableDates} onChange={(e) => setAvailableDates(e.target.value)} placeholder="e.g. 2026-06-25, 2026-06-28" />
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  List specific dates the doctor is available next (e.g. 2026-06-25, 2026-06-28). These will override/restrict the date picker options in booking forms.
+                </p>
+              </div>
+
               <Button type="submit" className="w-full bg-apollo-blue text-white" disabled={createDoctor.isPending || updateDoctor.isPending}>
                 {createDoctor.isPending || updateDoctor.isPending ? "Saving..." : selectedDoctor ? "Save Changes" : "Add Doctor"}
               </Button>
@@ -318,7 +331,12 @@ export function DoctorsSection() {
                     </div>
                   </TableCell>
                   <TableCell className="text-xs font-medium text-gray-700">
-                    {doc.availability || "—"}
+                    <div>{doc.availability || "—"}</div>
+                    {doc.availableDates && (
+                      <div className="mt-1 text-[10px] text-apollo-blue bg-apollo-light/60 px-1.5 py-0.5 rounded font-semibold whitespace-nowrap inline-block">
+                        Next: {doc.availableDates}
+                      </div>
+                    )}
                   </TableCell>
                   <TableCell>
                     <Badge

@@ -484,6 +484,7 @@ export const patientsRouter = createRouter({
         fees: z.number().optional(),
         availability: z.string().optional(),
         status: z.enum(["Available", "Limited", "Not Available"]).optional(),
+        availableDates: z.string().optional(),
       })
     )
     .mutation(async ({ input, ctx }) => {
@@ -524,6 +525,7 @@ export const patientsRouter = createRouter({
         fees: input.fees ?? 1200,
         availability: input.availability || "Monday to Saturday (10:00 AM - 2:00 PM)",
         status: input.status || "Available",
+        availableDates: input.availableDates || null,
         userId: newUser.id,
       });
 
@@ -547,6 +549,7 @@ export const patientsRouter = createRouter({
         fees: z.number().optional(),
         availability: z.string().optional(),
         status: z.enum(["Available", "Limited", "Not Available"]).optional(),
+        availableDates: z.string().optional(),
       })
     )
     .mutation(async ({ input, ctx }) => {
@@ -564,6 +567,7 @@ export const patientsRouter = createRouter({
           fees: input.fees ?? 1200,
           availability: input.availability || null,
           status: input.status || "Available",
+          availableDates: input.availableDates || null,
         })
         .where(eq(doctors.id, input.id));
 

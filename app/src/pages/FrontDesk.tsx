@@ -453,15 +453,7 @@ export default function FrontDesk() {
                       <label className="text-sm font-medium mb-1 block">Phone (Contact No)</label>
                       <Input value={registerPhone} onChange={(e) => setRegisterPhone(e.target.value)} placeholder="10-digit phone number" required />
                     </div>
-                    <div>
-                      <label className="text-sm font-medium mb-1 block">Date</label>
-                      <Input type="date" value={registerDate} onChange={(e) => setRegisterDate(e.target.value)} required />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium mb-1 block">Issue / Concern</label>
-                      <Input value={registerConcern} onChange={(e) => setRegisterConcern(e.target.value)} placeholder="Reason for appointment" required />
-                    </div>
-                    <div>
+                     <div>
                       <label className="text-sm font-medium mb-1 block">Select Doctor (optional)</label>
                       <Select value={registerDoctorId} onValueChange={setRegisterDoctorId}>
                         <SelectTrigger><SelectValue placeholder="Select doctor" /></SelectTrigger>
@@ -471,6 +463,42 @@ export default function FrontDesk() {
                           ))}
                         </SelectContent>
                       </Select>
+                    </div>
+                    {registerDoctorId && (() => {
+                      const doc = doctors?.find(d => d.id === parseInt(registerDoctorId));
+                      if (doc && doc.availableDates) {
+                        const dates = doc.availableDates.split(",").map(d => d.trim());
+                        return (
+                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-2.5 space-y-1">
+                            <span className="text-xs font-semibold text-blue-700 block">Doctor Available Dates:</span>
+                            <div className="flex flex-wrap gap-1.5">
+                              {dates.map((dStr) => (
+                                <button
+                                  key={dStr}
+                                  type="button"
+                                  onClick={() => setRegisterDate(dStr)}
+                                  className={`text-xs px-2.5 py-1 rounded border transition-colors ${
+                                    registerDate === dStr 
+                                      ? "bg-apollo-blue text-white border-apollo-blue font-semibold"
+                                      : "bg-white text-gray-700 hover:bg-gray-50 border-gray-200"
+                                  }`}
+                                >
+                                  {dStr}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
+                    <div>
+                      <label className="text-sm font-medium mb-1 block">Date</label>
+                      <Input type="date" value={registerDate} onChange={(e) => setRegisterDate(e.target.value)} required />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium mb-1 block">Issue / Concern</label>
+                      <Input value={registerConcern} onChange={(e) => setRegisterConcern(e.target.value)} placeholder="Reason for appointment" required />
                     </div>
                     <Button type="submit" className="w-full" disabled={bookWalkin.isPending}>
                       {bookWalkin.isPending ? "Booking..." : "Book Walk-in / Register"}
