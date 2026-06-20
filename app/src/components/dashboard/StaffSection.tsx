@@ -24,7 +24,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Loader2, Plus, Trash2, User, Shield, RotateCcw } from "lucide-react";
+import { Loader2, Plus, Trash2, User, Shield } from "lucide-react";
 import { format } from "date-fns";
 
 const roleColors: Record<string, string> = {
@@ -73,9 +73,7 @@ export function StaffSection() {
     onSuccess: () => utils.auth.listUsers.invalidate(),
   });
 
-  const restoreUser = trpc.auth.restoreUser.useMutation({
-    onSuccess: () => utils.auth.listUsers.invalidate(),
-  });
+  const activeStaff = staff?.filter((u) => !u.deletedAt) || [];
 
   if (isLoading) {
     return (
@@ -89,7 +87,7 @@ export function StaffSection() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          {staff?.length || 0} staff members
+          {activeStaff.length} active staff members
         </p>
         <Dialog open={showAdd} onOpenChange={setShowAdd}>
           <DialogTrigger asChild>
@@ -158,15 +156,15 @@ export function StaffSection() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {staff?.length === 0 ? (
+            {activeStaff.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                   No staff members
                 </TableCell>
               </TableRow>
             ) : (
-              staff?.map((u) => (
-                <TableRow key={u.id} className={u.deletedAt ? "opacity-50" : ""}>
+              activeStaff.map((u) => (
+                <TableRow key={u.id}>
                   <TableCell className="font-medium">#{u.id}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
@@ -182,43 +180,25 @@ export function StaffSection() {
                     </span>
                   </TableCell>
                   <TableCell>
-                    {u.deletedAt ? (
-                      <span className="text-xs text-red-500 font-medium">Inactive</span>
-                    ) : (
-                      <span className="text-xs text-green-500 font-medium">Active</span>
-                    )}
+                    <span className="text-xs text-green-500 font-medium">Active</span>
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {u.lastSignInAt ? format(new Date(u.lastSignInAt), "MMM d, yyyy") : "—"}
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      {u.deletedAt ? (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0 text-green-500"
-                          title="Restore user"
-                          onClick={() => restoreUser.mutate({ id: u.id })}
-                        >
-                          <RotateCcw className="w-4 h-4" />
-                        </Button>
-                      ) : (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0 text-red-500"
-                          title="Deactivate user"
-                          onClick={() => {
-                            if (confirm(`Deactivate user "${u.username}"?`)) {
-                              deleteUser.mutate({ id: u.id });
-                            }
-                          }}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      )}
-                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 text-red-500"
+                      title="Deactivate user"
+                      onClick={() => {
+                        if (confirm(`Deactivate user "${u.username}"?`)) {
+                          deleteUser.mutate({ id: u.id });
+                        }
+                      }}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))
