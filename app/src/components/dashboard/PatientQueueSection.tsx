@@ -17,8 +17,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Search } from "lucide-react";
+import { Loader2, Search, FileUp } from "lucide-react";
 import { format } from "date-fns";
+import ScanPrescriptionDialog from "./ScanPrescriptionDialog";
 
 interface PatientQueueSectionProps {
   onViewPrescription?: (patientId: number) => void;
@@ -28,6 +29,11 @@ export default function PatientQueueSection({ onViewPrescription }: PatientQueue
   const { data: patients, isLoading } = trpc.patients.list.useQuery();
   const utils = trpc.useUtils();
   const [searchTerm, setSearchTerm] = useState("");
+
+  // Scan Prescription States
+  const [scanDialogOpen, setScanDialogOpen] = useState(false);
+  const [scanPatientId, setScanPatientId] = useState<number | null>(null);
+  const [scanPatientName, setScanPatientName] = useState<string | null>(null);
 
   const updatePatientStatus = trpc.patients.updateStatus.useMutation({
     onSuccess: () => utils.patients.list.invalidate(),
@@ -128,14 +134,29 @@ export default function PatientQueueSection({ onViewPrescription }: PatientQueue
                       : "—"}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-8 border-apollo-blue text-apollo-blue hover:bg-apollo-blue/5"
-                      onClick={() => onViewPrescription?.(patient.id)}
-                    >
-                      View History & Timeline
-                    </Button>
+                    <div className="flex items-center justify-end gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 border-dashed border-sky-300 hover:border-apollo-blue text-apollo-blue bg-sky-50/20 hover:bg-sky-50/50 gap-1.5"
+                        onClick={() => {
+                          setScanPatientId(patient.id);
+                          setScanPatientName(patient.name);
+                          setScanDialogOpen(true);
+                        }}
+                      >
+                        <FileUp className="w-3.5 h-3.5" />
+                        Upload Paper Rx
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 border-apollo-blue text-apollo-blue hover:bg-apollo-blue/5"
+                        onClick={() => onViewPrescription?.(patient.id)}
+                      >
+                        View History & Timeline
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
@@ -143,6 +164,13 @@ export default function PatientQueueSection({ onViewPrescription }: PatientQueue
           </TableBody>
         </Table>
       </div>
+
+      <ScanPrescriptionDialog
+        patientId={scanPatientId}
+        patientName={scanPatientName}
+        open={scanDialogOpen}
+        onOpenChange={setScanDialogOpen}
+      />
     </div>
   );
 }

@@ -670,5 +670,68 @@ describe("TRPC API Router Integration Tests", () => {
       expect(aliceDataFinal.prescription?.status).toBe("dispensed");
       expect(aliceDataFinal.prescription?.pharmacyBillingAmount).toBe(500);
     });
+
+    it("allows front_desk or admin to create prescription on behalf of a doctor using createFromScan", async () => {
+      const db = getDb();
+      const adminUser = (await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.username, "admin"))
+        .limit(1))[0];
+
+      const adminCaller = appRouter.createCaller(createMockContext(adminUser));
+      const doctorsList = await adminCaller.patients.listDoctors();
+      const doctorId = doctorsList[0].id;
+
+      // 1. Create Patient
+      const patientRes = await adminCaller.patients.create({
+        name: "Bob Builder",
+        age: 35,
+        gender: "Male",
+        phone: "9876543212",
+        concern: "Back Pain",
+      });
+      expect(patientRes.success).toBe(true);
+
+      const patientList = await adminCaller.patients.list();
+      const patient = patientList.find(p => p.name === "Bob Builder")!;
+      const patientId = patient.id;
+
+      // 2. Call createFromScan
+      const res = await adminCaller.prescriptions.createFromScan({
+        patientId,
+        doctorId,
+        diagnosisNotes: "Lumbago (Back strain)",
+        medicines: [
+          {
+            medicineName: "Ibuprofen 400mg",
+            dosage: "1 tab",
+            frequency: "1-0-1",
+            duration: "3 days",
+          }
+        ],
+        tests: [
+          {
+            testName: "Lumbar X-ray",
+          }
+        ]
+      });
+
+      expect(res.success).toBe(true);
+      expect(res.prescriptionId).toBeDefined();
+
+      // Verify patient is now marked completed
+      const updatedPatient = (await db
+        .select()
+        .from(schema.patients)
+        .where(eq(schema.patients.id, patientId)))[0];
+      expect(updatedPatient.status).toBe("completed");
+
+      // Verify prescription was created
+      const details = await adminCaller.prescriptions.getByPatientId({ patientId });
+      expect(details?.diagnosisNotes).toBe("Lumbago (Back strain)");
+      expect(details?.medicines[0].medicineName).toBe("Ibuprofen 400mg");
+      expect(details?.tests[0].testName).toBe("Lumbar X-ray");
+    });
   });
 });
