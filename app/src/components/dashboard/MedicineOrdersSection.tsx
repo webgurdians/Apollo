@@ -478,7 +478,7 @@ export default function MedicineOrdersSection() {
                   let orderItems: OrderItem[] = [];
                   try {
                     orderItems = JSON.parse(order.items);
-                  } catch (e) {}
+                  } catch { orderItems = []; }
 
                   return (
                     <TableRow key={order.id}>

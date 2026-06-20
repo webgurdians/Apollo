@@ -14,7 +14,7 @@ export default function Login() {
 
   const loginMutation = trpc.auth.login.useMutation({
     onSuccess: (data) => {
-      const role = data.role as any;
+      const role = data.role;
       if (role === "doctor") {
         navigate("/doctor");
       } else if (role === "pharmacy") {
