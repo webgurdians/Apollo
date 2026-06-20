@@ -37,16 +37,27 @@ export function getDb() {
         // If the database file does not exist in the target directory,
         // copy the pre-seeded sqlite.db from the app package to preserve existing data
         if (!fs.existsSync(resolvedPath)) {
-          const defaultDbPath = path.resolve(__dirname, "../sqlite.db");
-          if (fs.existsSync(defaultDbPath)) {
-            try {
-              fs.copyFileSync(defaultDbPath, resolvedPath);
-              console.log(`Successfully copied pre-seeded database from ${defaultDbPath} to ${resolvedPath}`);
-            } catch (copyErr) {
-              console.error(`Failed to copy pre-seeded database:`, copyErr);
+          const possiblePaths = [
+            path.resolve(__dirname, "../sqlite.db"),
+            path.resolve(process.cwd(), "sqlite.db"),
+            path.resolve(process.cwd(), "app/sqlite.db"),
+          ];
+          
+          let copied = false;
+          for (const defaultDbPath of possiblePaths) {
+            if (fs.existsSync(defaultDbPath) && defaultDbPath !== resolvedPath) {
+              try {
+                fs.copyFileSync(defaultDbPath, resolvedPath);
+                console.log(`Successfully copied pre-seeded database from ${defaultDbPath} to ${resolvedPath}`);
+                copied = true;
+                break;
+              } catch (copyErr) {
+                console.error(`Failed to copy database from ${defaultDbPath}:`, copyErr);
+              }
             }
-          } else {
-            console.log(`Pre-seeded database not found at ${defaultDbPath}, will initialize fresh database.`);
+          }
+          if (!copied) {
+            console.log(`Pre-seeded database not found or copy failed. Will initialize fresh database.`);
           }
         }
         
