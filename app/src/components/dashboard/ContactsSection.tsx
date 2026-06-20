@@ -4,7 +4,7 @@ import { Loader2, Trash2, Phone, CreditCard, Mail, Calendar } from "lucide-react
 import { format } from "date-fns";
 
 export function ContactsSection() {
-  const { data: contacts, isLoading: contactsLoading } = trpc.contacts.list.useQuery(undefined, {
+  const { data: contacts, isLoading: contactsLoading } = trpc.contact.list.useQuery(undefined, {
     refetchInterval: 5000,
   });
 
@@ -14,8 +14,8 @@ export function ContactsSection() {
 
   const utils = trpc.useUtils();
 
-  const deleteContact = trpc.contacts.delete.useMutation({
-    onSuccess: () => utils.contacts.list.invalidate(),
+  const deleteContact = trpc.contact.delete.useMutation({
+    onSuccess: () => utils.contact.list.invalidate(),
   });
 
   const markAsPaid = trpc.appointment.updatePaymentStatus.useMutation({
@@ -136,7 +136,7 @@ export function ContactsSection() {
               No general website contact messages.
             </div>
           ) : (
-            contacts?.map((contact) => (
+            contacts?.map((contact: any) => (
               <div key={contact.id} className="bg-white rounded-xl border shadow-sm p-4 space-y-3">
                 <div className="flex items-start justify-between">
                   <div>

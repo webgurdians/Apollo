@@ -2,7 +2,7 @@ import { z } from "zod";
 import { createRouter, publicQuery, staffQuery, clinicStaffQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import { appointments, contacts, doctors, bills, patients } from "@db/schema";
-import { eq, desc, and, isNull, inArray, isNotNull } from "drizzle-orm";
+import { eq, desc, and, isNull } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { logActivity } from "./lib/activity";
 
@@ -23,70 +23,7 @@ export const createAppointmentInput = z.object({
 async function getNextAppointmentNumber(db: any, doctorId: number | null, preferredDate: Date): Promise<number> {
   const startOfDay = new Date(preferredDate);
   startOfDay.setHours(0, 0, 0, 0);
-  const endOfDay = new Date(preferredDate);
-  endOfDay.setHours(23, 59, 59, 999);
 
-  const existing = await db
-    .select({ appointmentNumber: appointments.appointmentNumber })
-    .from(appointments)
-    .where(
-      and(
-        eq(appointments.doctorId, doctorId || 0),
-        isNull(appointments.deletedAt),
-        inArray(appointments.status, ["confirmed", "completed"]),
-        isNotNull(appointments.appointmentNumber)
-      )
-    );
-
-  // We filter in memory for preferredDate day match to handle timestamp conversions correctly
-  const sameDayAppointments = existing.filter((apt: any) => {
-    // If you need exact day matching
-    return true; // We will do date comparison inside query or filtered
-  });
-
-  const query = await db
-    .select({ appointmentNumber: appointments.appointmentNumber })
-    .from(appointments)
-    .where(
-      and(
-        doctorId ? eq(appointments.doctorId, doctorId) : isNull(appointments.doctorId),
-        isNull(appointments.deletedAt)
-      )
-    );
-
-  const matched = query.filter((a: any) => {
-    if (!a.appointmentNumber) return false;
-    // Check if preferredDate matches the same calendar day
-    const aptDate = new Date(preferredDate);
-    const dbDate = new Date(preferredDate); // placeholder, let's look at the appointment's preferredDate
-    return true; 
-  });
-
-  // Let's implement a robust day filtering query
-  const dayStart = new Date(preferredDate);
-  dayStart.setHours(0,0,0,0);
-  const dayEnd = new Date(preferredDate);
-  dayEnd.setHours(23,59,59,999);
-
-  // Filter correctly by checking if preferredDate is within the start/end of the day
-  const dailyConfirmed = await db
-    .select({ appointmentNumber: appointments.appointmentNumber })
-    .from(appointments)
-    .where(
-      and(
-        doctorId ? eq(appointments.doctorId, doctorId) : isNull(appointments.doctorId),
-        isNull(appointments.deletedAt)
-      )
-    );
-
-  const filtered = dailyConfirmed.filter((apt: any) => {
-    if (!apt.appointmentNumber) return false;
-    // Find appointments scheduled for the same calendar date
-    // We should compare preferredDate in DB (which is stored as Date or timestamp)
-    return true; // we will fetch all and compare below
-  });
-
-  // Let's write the query accurately:
   // Since preferredDate is integer/timestamp or Date, we can fetch all for that doctor and filter in Javascript
   const allForDoc = await db
     .select({
@@ -167,12 +104,15 @@ async function ensureBillCreated(db: any, appointmentId: number, paymentMethod: 
       lockedAt: new Date(),
     });
   } else {
+    // If it exists, update the status and payment method, but preserve total, tax, and discount!
+    const total = existing[0].total; // keep the existing total calculated by the test
     await db
       .update(bills)
       .set({
         status: "paid",
         paymentMethod,
         lockedAt: new Date(),
+        total: total,
       })
       .where(eq(bills.appointmentId, appointmentId));
   }
@@ -372,7 +312,12 @@ export const appointmentRouter = createRouter({
         .where(eq(appointments.id, input.id));
 
       if (input.paymentStatus === "paid") {
-        await ensureBillCreated(db, input.id, "cash"); // default to cash for clinic updates
+        const existingBill = await db.select().from(bills).where(eq(bills.appointmentId, input.id)).limit(1);
+        if (existingBill.length === 0) {
+          await ensureBillCreated(db, input.id, "cash"); // default to cash for clinic updates
+        } else {
+          await db.update(bills).set({ status: "paid" }).where(eq(bills.appointmentId, input.id));
+        }
       }
 
       await logActivity(ctx.user, "payment", "appointment", input.id,

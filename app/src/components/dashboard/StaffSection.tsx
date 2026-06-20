@@ -56,7 +56,7 @@ export function StaffSection() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
-  const [role, setRole] = useState("front_desk");
+  const [role, setRole] = useState<"user" | "staff" | "admin" | "front_desk" | "doctor" | "pharmacy" | "diagnostics" | "founder">("front_desk");
 
   const createUser = trpc.auth.createUser.useMutation({
     onSuccess: () => {
@@ -123,7 +123,7 @@ export function StaffSection() {
               </div>
               <div>
                 <label className="text-sm font-medium mb-1 block">Role</label>
-                <Select value={role} onValueChange={setRole}>
+                <Select value={role} onValueChange={(val: any) => setRole(val)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>

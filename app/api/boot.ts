@@ -139,7 +139,7 @@ app.all("/api/trpc/*", async (c) => {
   res.headers.forEach((value, key) => {
     c.header(key, value);
   });
-  return c.body(res.body, res.status);
+  return c.body(res.body as any, res.status as any);
 });
 app.all("/api/*", (c) => c.json({ error: "Not Found" }, 404));
 

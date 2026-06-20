@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createRouter, publicQuery, staffQuery, billingQuery } from "./middleware";
+import { createRouter, publicQuery, billingQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import { bills, appointments } from "@db/schema";
 import { eq, desc, and, isNull } from "drizzle-orm";
@@ -55,7 +55,8 @@ export const billingRouter = createRouter({
 
       const existing = await db.select().from(bills).where(eq(bills.appointmentId, input.appointmentId));
       if (existing.length > 0) {
-        throw new TRPCError({ code: "CONFLICT", message: "Bill already exists for this appointment" });
+        // Instead of throwing a conflict, let's delete the existing automated bill to write the custom one, or update it
+        await db.delete(bills).where(eq(bills.appointmentId, input.appointmentId));
       }
 
       const total = input.amount + input.tax - input.discount;

@@ -25,7 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Plus, User, Stethoscope, GraduationCap, FileText, Edit, Trash2, IndianRupee, MapPin } from "lucide-react";
+import { Loader2, Plus, Stethoscope, GraduationCap, FileText, Edit, Trash2, IndianRupee, MapPin } from "lucide-react";
 
 export function DoctorsSection() {
   const { data: doctors, isLoading } = trpc.patients.listDoctors.useQuery();

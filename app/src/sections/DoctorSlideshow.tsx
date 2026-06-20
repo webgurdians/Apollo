@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ChevronLeft, ChevronRight, Calendar, DollarSign, Award, MapPin, Building } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar, DollarSign, Award, Building } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/providers/trpc";
 

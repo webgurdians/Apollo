@@ -1,13 +1,5 @@
 import "dotenv/config";
 
-function secret(name: string): string {
-  const value = process.env[name];
-  if (!value) {
-    throw new Error(`Missing required environment variable: ${name}`);
-  }
-  return value;
-}
-
 export const env = {
   appId: process.env.APP_ID || "demo-app",
   appSecret: process.env.APP_SECRET || "apollo_clinic_dev_secret_change_in_prod",
@@ -22,4 +14,6 @@ export const env = {
         return trimmed;
       })
     : ["https://apollo-mald.vercel.app"],
+  razorpayKeyId: process.env.VITE_RAZORPAY_KEY_ID || "",
+  razorpayKeySecret: process.env.RAZORPAY_KEY_SECRET || "",
 };

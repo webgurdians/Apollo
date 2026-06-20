@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { trpc } from "@/providers/trpc";
 import { Button } from "@/components/ui/button";
-import { X, Calendar, ArrowRight, Sparkles, ShieldCheck } from "lucide-react";
+import { X, Calendar, ArrowRight, Sparkles } from "lucide-react";
 
 interface DoctorPopupProps {
   onSelectDoctor: (serviceName: string, availability: string) => void;

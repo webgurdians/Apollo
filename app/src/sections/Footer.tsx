@@ -1,4 +1,4 @@
-import { Heart, Phone, MessageCircle, MapPin } from "lucide-react";
+import { Phone, MessageCircle, MapPin } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 export default function Footer() {

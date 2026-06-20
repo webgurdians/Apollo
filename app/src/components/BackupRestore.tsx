@@ -5,9 +5,9 @@ import { Download, Upload, RefreshCw, AlertTriangle, CheckCircle, Loader2 } from
 import { format } from "date-fns";
 
 export function BackupRestore() {
-  const [restoreFilename, setRestoreFilename] = useState("");
   const [status, setStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
-  const fileInputRef = useState<HTMLInputElement | null>(null);
+  const utils = trpc.useUtils();
+
 
   const { data: backups, isLoading: loadingBackups, refetch: refetchBackups } = trpc.backup.list.useQuery();
   const createBackupMut = trpc.backup.create.useMutation({
@@ -19,9 +19,13 @@ export function BackupRestore() {
     onError: (e) => setStatus({ type: "error", message: e.message }),
   });
 
+
+
   const handleDownload = async (filename: string) => {
     try {
-      const result = await trpc.backup.download.fetch({ filename });
+      // Wait next render or fetch directly using tRPC client context if available, or just fetch via context client:
+      const trpcContext = utils.client;
+      const result = await trpcContext.backup.download.query({ filename });
       const blob = base64ToBlob(result.data, "application/zip");
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
