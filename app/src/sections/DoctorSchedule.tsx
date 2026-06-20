@@ -11,18 +11,6 @@ export default function DoctorSchedule() {
   const doctorsList = dbDoctors || [];
 
   const schedule = daysOfWeek.map((day) => {
-    if (day === "Sunday") {
-      return {
-        day: t("doctorSchedule.sunday"),
-        doctor: t("doctorSchedule.na"),
-        specialty: t("doctorSchedule.emergencyOnly"),
-        hospital: "Aranghata Centre",
-        time: t("doctorSchedule.timeSun"),
-        status: "Limited",
-        statusKey: "limited",
-      };
-    }
-
     const dayDoctors = doctorsList.filter((doc) => {
       if (doesAvailabilityMatchDay(doc.availability || "", day)) return true;
       if (doc.availableDates) {
