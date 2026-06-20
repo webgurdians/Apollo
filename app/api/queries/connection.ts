@@ -19,7 +19,15 @@ export function getDb() {
     try {
       if (dbPath && dbPath !== ":memory:") {
         // Resolve path to make sure we handle relative/absolute paths correctly
-        const resolvedPath = path.resolve(dbPath);
+        let resolvedPath = path.resolve(dbPath);
+        
+        // If the path exists and is a directory (often happens if a volume is mounted directly to the file path),
+        // we use a database file inside that directory.
+        if (fs.existsSync(resolvedPath) && fs.statSync(resolvedPath).isDirectory()) {
+          console.log(`DATABASE_URL path ${resolvedPath} is a directory. Using sqlite.db inside it.`);
+          resolvedPath = path.join(resolvedPath, "sqlite.db");
+        }
+        
         const dbDir = path.dirname(resolvedPath);
         if (!fs.existsSync(dbDir)) {
           fs.mkdirSync(dbDir, { recursive: true });
