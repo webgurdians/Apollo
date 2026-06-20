@@ -13,7 +13,7 @@ export const env = {
         }
         return trimmed;
       })
-    : ["https://apollo-mald.vercel.app"],
+    : ["https://apollo-mald.vercel.app", "https://capollo.co.in", "https://www.capollo.co.in"],
   razorpayKeyId: process.env.VITE_RAZORPAY_KEY_ID || "",
   razorpayKeySecret: process.env.RAZORPAY_KEY_SECRET || "",
 };
