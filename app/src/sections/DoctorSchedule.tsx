@@ -23,9 +23,20 @@ export default function DoctorSchedule() {
       };
     }
 
-    const dayDoctors = doctorsList.filter((doc) =>
-      doesAvailabilityMatchDay(doc.availability || "", day)
-    );
+    const dayDoctors = doctorsList.filter((doc) => {
+      if (doesAvailabilityMatchDay(doc.availability || "", day)) return true;
+      if (doc.availableDates) {
+        const dates = doc.availableDates.split(",").map((d) => d.trim());
+        for (const dateStr of dates) {
+          const d = new Date(dateStr);
+          if (!isNaN(d.getTime())) {
+            const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+            if (days[d.getDay()] === day) return true;
+          }
+        }
+      }
+      return false;
+    });
 
     if (dayDoctors.length > 0) {
       const doctor = dayDoctors
@@ -46,7 +57,31 @@ export default function DoctorSchedule() {
         .map((doc) => {
           let tStr = doc.availability || "";
           const match = tStr.match(/\(([^)]+)\)/);
-          return match && match[1] ? match[1] : tStr;
+          const timing = match && match[1] ? match[1] : tStr;
+          
+          if (doc.availableDates) {
+            const dates = doc.availableDates.split(",").map((d) => d.trim());
+            const matchingDates = dates.filter((dateStr) => {
+              const d = new Date(dateStr);
+              if (isNaN(d.getTime())) return false;
+              const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+              return days[d.getDay()] === day;
+            });
+            if (matchingDates.length > 0) {
+              // Convert matching dates to short display (e.g. 25 Jun)
+              const formattedDates = matchingDates.map(dateStr => {
+                const parts = dateStr.split("-");
+                if (parts.length === 3) {
+                  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                  const monthIdx = parseInt(parts[1]) - 1;
+                  return `${parseInt(parts[2])} ${months[monthIdx]}`;
+                }
+                return dateStr;
+              });
+              return `${timing} (On: ${formattedDates.join(", ")})`;
+            }
+          }
+          return timing;
         })
         .join(" / ");
 

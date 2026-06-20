@@ -102,8 +102,9 @@ export default function DoctorSlideshow({ onSelectDoctor }: DoctorSlideshowProps
         image: d.image || "/images/jatin.jpg",
         fees: d.fees ?? 1200,
         availability: d.availability || "Monday to Saturday (10:00 AM - 2:00 PM)",
+        availableDates: d.availableDates || null,
       }))
-    : fallbackDoctors;
+    : fallbackDoctors.map(d => ({ ...d, availableDates: null }));
 
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -218,8 +219,12 @@ export default function DoctorSlideshow({ onSelectDoctor }: DoctorSlideshowProps
                     <div className="flex items-start gap-2.5">
                       <Calendar className="w-5 h-5 text-apollo-blue shrink-0 mt-0.5" />
                       <div>
-                        <span className="font-semibold text-gray-900 block">Weekly Availability</span>
-                        <span className="text-muted-foreground">{doc.availability}</span>
+                        <span className="font-semibold text-gray-900 block">
+                          {doc.availableDates ? "Specific Available Dates" : "Weekly Availability"}
+                        </span>
+                        <span className="text-muted-foreground">
+                          {doc.availableDates || doc.availability}
+                        </span>
                       </div>
                     </div>
 
