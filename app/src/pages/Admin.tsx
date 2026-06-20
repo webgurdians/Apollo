@@ -208,6 +208,9 @@ function DialogButton({ onViewPrescription }: { onViewPrescription: (patientId: 
       setRegisterDate(format(new Date(), "yyyy-MM-dd"));
       setPaymentMethod("clinic");
     },
+    onError: (err) => {
+      alert("Error booking appointment: " + err.message);
+    },
   });
 
   return (
