@@ -328,7 +328,7 @@ export function DoctorsSection() {
                         />
                       </div>
                       <div>
-                        <div className="font-semibold text-gray-900 text-sm">Dr. {doc.name}</div>
+                        <div className="font-semibold text-gray-900 text-sm">{doc.name}</div>
                         <div className="text-xs text-muted-foreground flex items-center gap-1">
                           <GraduationCap className="w-3.5 h-3.5" />
                           {doc.credentials}
@@ -392,7 +392,7 @@ export function DoctorsSection() {
                         size="sm"
                         className="h-8 w-8 p-0 text-red-500 hover:bg-red-50"
                         onClick={() => {
-                          if (confirm(`Are you sure you want to delete Dr. ${doc.name}?`)) {
+                          if (confirm(`Are you sure you want to delete ${doc.name}?`)) {
                             deleteDoctor.mutate({ id: doc.id });
                           }
                         }}
