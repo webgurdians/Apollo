@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { ChevronLeft, ChevronRight, Calendar, DollarSign, Award, Building } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/providers/trpc";
@@ -108,13 +108,13 @@ export default function DoctorSlideshow({ onSelectDoctor }: DoctorSlideshowProps
 
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  const handlePrev = () => {
+  const handlePrev = useCallback(() => {
     setCurrentIndex((prev) => (prev === 0 ? doctors.length - 1 : (prev - 1) % doctors.length));
-  };
+  }, [doctors.length]);
 
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     setCurrentIndex((prev) => (prev >= doctors.length - 1 ? 0 : prev + 1));
-  };
+  }, [doctors.length]);
 
   // Auto-play every 5 seconds
   useEffect(() => {
@@ -123,7 +123,7 @@ export default function DoctorSlideshow({ onSelectDoctor }: DoctorSlideshowProps
       handleNext();
     }, 5000);
     return () => clearInterval(timer);
-  }, [doctors.length]);
+  }, [doctors.length, handleNext]);
 
   const handleBookNow = (serviceName: string, availability: string) => {
     onSelectDoctor(serviceName, availability);

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { trpc } from "@/providers/trpc";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
@@ -16,17 +16,29 @@ import { Loader2, Save, BellRing, Sparkles } from "lucide-react";
 
 export function FeaturedDoctorPopupConfig() {
   const utils = trpc.useUtils();
-  const [isActive, setIsActive] = useState(false);
-  const [selectedDoctorId, setSelectedDoctorId] = useState<string>("");
-  const [availableDate, setAvailableDate] = useState("");
   const [status, setStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
   const { data: doctorsList } = trpc.patients.listDoctors.useQuery();
   const { data: popupSetting, isLoading: loadingSetting } = trpc.patients.getPopupSetting.useQuery();
 
+  const [localIsActive, setLocalIsActive] = useState<boolean | null>(null);
+  const [localDoctorId, setLocalDoctorId] = useState<string | null>(null);
+  const [localDate, setLocalDate] = useState<string | null>(null);
+
+  const isActive = localIsActive ?? popupSetting?.isActive ?? false;
+  const selectedDoctorId = localDoctorId ?? (popupSetting?.doctorId ? String(popupSetting.doctorId) : "");
+  const availableDate = localDate ?? (popupSetting?.availableDate ?? "");
+
+  const handleReset = useCallback(() => {
+    setLocalIsActive(null);
+    setLocalDoctorId(null);
+    setLocalDate(null);
+  }, []);
+
   const updateSettingMut = trpc.patients.updatePopupSetting.useMutation({
     onSuccess: () => {
       utils.patients.getPopupSetting.invalidate();
+      handleReset();
       setStatus({ type: "success", message: "Popup configuration updated successfully!" });
       setTimeout(() => setStatus(null), 3000);
     },
@@ -34,14 +46,6 @@ export function FeaturedDoctorPopupConfig() {
       setStatus({ type: "error", message: e.message || "Failed to update settings" });
     },
   });
-
-  useEffect(() => {
-    if (popupSetting) {
-      setIsActive(popupSetting.isActive);
-      setSelectedDoctorId(popupSetting.doctorId ? String(popupSetting.doctorId) : "");
-      setAvailableDate(popupSetting.availableDate || "");
-    }
-  }, [popupSetting]);
 
   const handleSave = () => {
     const doctorId = selectedDoctorId ? Number(selectedDoctorId) : null;
@@ -88,7 +92,7 @@ export function FeaturedDoctorPopupConfig() {
           <Switch
             id="popup-toggle"
             checked={isActive}
-            onCheckedChange={setIsActive}
+            onCheckedChange={(v) => setLocalIsActive(v)}
           />
         </div>
 
@@ -97,7 +101,7 @@ export function FeaturedDoctorPopupConfig() {
           <Label className="text-sm font-semibold text-gray-900">Featured Doctor</Label>
           <Select
             value={selectedDoctorId}
-            onValueChange={setSelectedDoctorId}
+            onValueChange={(v) => setLocalDoctorId(v)}
             disabled={!isActive}
           >
             <SelectTrigger className="w-full">
@@ -125,7 +129,7 @@ export function FeaturedDoctorPopupConfig() {
             id="available-date"
             placeholder="e.g. Monday, 22 June (11:00 AM – 3:00 PM)"
             value={availableDate}
-            onChange={(e) => setAvailableDate(e.target.value)}
+            onChange={(e) => setLocalDate(e.target.value)}
             disabled={!isActive}
           />
           <p className="text-[11px] text-muted-foreground">

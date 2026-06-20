@@ -11,6 +11,65 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, Calendar, FileText, Receipt, Activity } from "lucide-react";
 import { format } from "date-fns";
 
+interface PatientHistory {
+  id: number;
+  name: string;
+  age: number;
+  gender: string;
+  phone: string;
+  concern: string;
+  status: string;
+  assignedDoctorId: number | null;
+  createdAt: Date;
+  updatedAt: Date;
+  doctorName: string | null;
+  doctorSpecialty: string | null;
+  appointments: Array<{
+    id: number;
+    service: string;
+    preferredDate: Date;
+    startTime: Date | null;
+    endTime: Date | null;
+    doctorId: number | null;
+    status: string;
+    paymentStatus: string;
+    message: string | null;
+    createdAt: Date;
+    doctorName: string | null;
+  }>;
+  bills: Array<{
+    id: number;
+    appointmentId: number;
+    amount: number;
+    tax: number;
+    discount: number;
+    total: number;
+    status: string;
+    paymentMethod: string | null;
+    createdAt: Date;
+  }>;
+  prescriptions: Array<{
+    id: number;
+    patientId: number;
+    doctorId: number;
+    diagnosisNotes: string;
+    createdAt: Date;
+    status: string;
+    pharmacyBillingAmount: number;
+    doctor: { name: string } | null;
+    medicines: Array<{
+      id: number;
+      medicineName: string;
+      dosage: string;
+      frequency: string;
+    }>;
+    tests: Array<{
+      id: number;
+      testName: string;
+    }>;
+  }>;
+}
+
 interface PrescriptionDialogProps {
   patientId: number | null;
   open: boolean;
@@ -101,11 +160,11 @@ export default function PrescriptionDialog({
               </TabsTrigger>
               <TabsTrigger value="appointments" className="flex items-center gap-1.5 text-xs">
                 <Activity className="w-3.5 h-3.5" />
-                Visits ({(patient as any).appointments?.length || 0})
+                Visits ({(patient as PatientHistory).appointments?.length || 0})
               </TabsTrigger>
               <TabsTrigger value="billing" className="flex items-center gap-1.5 text-xs">
                 <Receipt className="w-3.5 h-3.5" />
-                Bills ({(patient as any).bills?.length || 0})
+                Bills ({(patient as PatientHistory).bills?.length || 0})
               </TabsTrigger>
             </TabsList>
 
@@ -165,8 +224,8 @@ export default function PrescriptionDialog({
             </TabsContent>
 
             <TabsContent value="appointments" className="space-y-3 mt-4">
-              {(patient as any).appointments && (patient as any).appointments.length > 0 ? (
-                (patient as any).appointments.map((apt: any) => (
+              {(patient as PatientHistory).appointments && (patient as PatientHistory).appointments.length > 0 ? (
+                (patient as PatientHistory).appointments.map((apt) => (
                   <div key={apt.id} className="border rounded-lg p-3 bg-white shadow-sm flex items-center justify-between">
                     <div>
                       <p className="font-medium text-sm">{apt.service}</p>
@@ -203,8 +262,8 @@ export default function PrescriptionDialog({
             </TabsContent>
 
             <TabsContent value="billing" className="space-y-3 mt-4">
-              {(patient as any).bills && (patient as any).bills.length > 0 ? (
-                (patient as any).bills.map((bill: any) => (
+              {(patient as PatientHistory).bills && (patient as PatientHistory).bills.length > 0 ? (
+                (patient as PatientHistory).bills.map((bill) => (
                   <div key={bill.id} className="border rounded-lg p-3 bg-white shadow-sm flex items-center justify-between">
                     <div>
                       <p className="font-semibold text-sm">Bill #{bill.id}</p>

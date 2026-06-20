@@ -9,7 +9,7 @@ const app = express();
 app.use(cors());
 
 const PORT = process.env.PORT || 4000;
-const SECRET = "apollo_secret_123";
+const SECRET = process.env.WEBHOOK_SECRET || "apollo_secret_123";
 
 /**
  * Verify Razorpay webhook signature
@@ -184,7 +184,7 @@ async function createPDF(html, paymentId) {
   const filePath = path.join(receiptsDir, `receipt_${paymentId}.pdf`);
 
   const browser = await puppeteer.launch({
-    headless: "new",
+    headless: true,
     args: ['--no-sandbox', '--disable-setuid-sandbox']
   });
   

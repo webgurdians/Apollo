@@ -1,10 +1,20 @@
 import { z } from "zod";
+import type { BetterSQLite3Database } from "drizzle-orm/better-sqlite3";
 import { createRouter, publicQuery, staffQuery, clinicStaffQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import { appointments, contacts, doctors, bills, patients } from "@db/schema";
 import { eq, desc, and, isNull } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { logActivity } from "./lib/activity";
+
+type DrizzleDB = BetterSQLite3Database<Record<string, never>>;
+type AppointmentRow = {
+  id: number;
+  preferredDate: Date;
+  appointmentNumber: number | null;
+  status: string;
+  paymentStatus: string;
+};
 
 export const createAppointmentInput = z.object({
   name: z.string().min(1, "Name is required"),
@@ -20,7 +30,7 @@ export const createAppointmentInput = z.object({
   gender: z.string().optional(),
 }).strict();
 
-async function getNextAppointmentNumber(db: any, doctorId: number | null, preferredDate: Date): Promise<number> {
+async function getNextAppointmentNumber(db: DrizzleDB, doctorId: number | null, preferredDate: Date): Promise<number> {
   const startOfDay = new Date(preferredDate);
   startOfDay.setHours(0, 0, 0, 0);
 
@@ -43,12 +53,12 @@ async function getNextAppointmentNumber(db: any, doctorId: number | null, prefer
 
   const targetDateStr = startOfDay.toDateString();
   const dayTokens = allForDoc
-    .filter((apt: any) => {
+    .filter((apt: AppointmentRow) => {
       if (!apt.appointmentNumber) return false;
       const aptDate = new Date(apt.preferredDate);
       return aptDate.toDateString() === targetDateStr;
     })
-    .map((apt: any) => apt.appointmentNumber as number);
+    .map((apt: AppointmentRow) => apt.appointmentNumber as number);
 
   if (dayTokens.length === 0) {
     return 1;
@@ -56,7 +66,7 @@ async function getNextAppointmentNumber(db: any, doctorId: number | null, prefer
   return Math.max(...dayTokens) + 1;
 }
 
-async function ensureBillCreated(db: any, appointmentId: number, paymentMethod: "online" | "cash" | "upi") {
+async function ensureBillCreated(db: DrizzleDB, appointmentId: number, paymentMethod: "online" | "cash" | "upi") {
   const [apt] = await db
     .select({
       id: appointments.id,
@@ -296,7 +306,7 @@ export const appointmentRouter = createRouter({
         throw new TRPCError({ code: "NOT_FOUND", message: "Appointment not found" });
       }
 
-      const updates: any = { paymentStatus: input.paymentStatus };
+      const updates: Partial<{ paymentStatus: string; status: string; appointmentNumber: number | null }> = { paymentStatus: input.paymentStatus };
 
       // If marked as paid, move straight to appointment tab as confirmed and assign token number if not already assigned
       if (input.paymentStatus === "paid") {

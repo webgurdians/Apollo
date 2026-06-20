@@ -11,10 +11,10 @@ export const searchRouter = createRouter({
       const db = getDb();
       const term = `%${input.q}%`;
       const results: {
-        patients: any[];
-        appointments: any[];
-        bills: any[];
-        doctors: any[];
+        patients: Record<string, unknown>[];
+        appointments: Record<string, unknown>[];
+        bills: Record<string, unknown>[];
+        doctors: Record<string, unknown>[];
       } = {
         patients: [],
         appointments: [],

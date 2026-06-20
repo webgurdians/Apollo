@@ -136,7 +136,7 @@ export function ContactsSection() {
               No general website contact messages.
             </div>
           ) : (
-            contacts?.map((contact: any) => (
+            contacts?.map((contact) => (
               <div key={contact.id} className="bg-white rounded-xl border shadow-sm p-4 space-y-3">
                 <div className="flex items-start justify-between">
                   <div>

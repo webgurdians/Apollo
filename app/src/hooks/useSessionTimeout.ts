@@ -6,7 +6,7 @@ const TIMEOUT_MS = 30 * 60 * 1000;
 const CHECK_INTERVAL_MS = 60 * 1000;
 
 export function useSessionTimeout(onLogout: () => void) {
-  const lastActivity = useRef(Date.now());
+  const lastActivity = useRef<number>(0);
   const navigate = useNavigate();
 
   const resetTimer = useCallback(() => {
@@ -14,6 +14,8 @@ export function useSessionTimeout(onLogout: () => void) {
   }, []);
 
   useEffect(() => {
+    lastActivity.current = Date.now();
+
     const events = ["mousedown", "keydown", "scroll", "touchstart", "mousemove"];
     for (const event of events) {
       window.addEventListener(event, resetTimer);

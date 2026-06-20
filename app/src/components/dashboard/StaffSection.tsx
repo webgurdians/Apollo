@@ -123,7 +123,7 @@ export function StaffSection() {
               </div>
               <div>
                 <label className="text-sm font-medium mb-1 block">Role</label>
-                <Select value={role} onValueChange={(val: any) => setRole(val)}>
+                <Select value={role} onValueChange={(val: string) => setRole(val)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>

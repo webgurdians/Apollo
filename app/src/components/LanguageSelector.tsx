@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Globe } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -13,10 +13,6 @@ function getLanguageFromStorage(): "en" | "bn" {
 export default function LanguageSelector() {
   const { i18n } = useTranslation();
   const [currentLang, setCurrentLang] = useState<"en" | "bn">(getLanguageFromStorage);
-
-  useEffect(() => {
-    setCurrentLang(i18n.language as "en" | "bn");
-  }, [i18n.language]);
 
   const changeLanguage = (lang: "en" | "bn") => {
     i18n.changeLanguage(lang);

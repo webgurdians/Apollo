@@ -43,7 +43,7 @@ export default function DoctorSchedule() {
       
       const time = dayDoctors
         .map((doc) => {
-          let tStr = doc.availability || "";
+          const tStr = doc.availability || "";
           const match = tStr.match(/\(([^)]+)\)/);
           const timing = match && match[1] ? match[1] : tStr;
           

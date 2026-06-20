@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { parseAvailabilityDate } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -76,7 +76,6 @@ export default function AppointmentForm({
     }
   };
   const [localDate, setLocalDate] = useState<Date>();
-  const date = selectedDateProp !== undefined ? selectedDateProp : localDate;
   const setDate = (val: Date | undefined) => {
     if (setSelectedDate) {
       setSelectedDate(val);
@@ -84,6 +83,7 @@ export default function AppointmentForm({
       setLocalDate(val);
     }
   };
+
   const [message, setMessage] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"online" | "clinic">("clinic");
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -104,20 +104,19 @@ export default function AppointmentForm({
       ]
     : services;
 
-  // Auto pre-populate date when doctor is selected
-  useEffect(() => {
+  const autoDate = useMemo(() => {
     if (serviceName && dbDoctors) {
       const doc = dbDoctors.find(
         (d) => d.serviceName === serviceName || `${d.name} - ${d.specialty}` === serviceName
       );
       if (doc && doc.availability) {
-        const parsed = parseAvailabilityDate(doc.availability);
-        if (parsed) {
-          setDate(parsed);
-        }
+        return parseAvailabilityDate(doc.availability);
       }
     }
+    return undefined;
   }, [serviceName, dbDoctors]);
+
+  const date = selectedDateProp !== undefined ? selectedDateProp : (localDate ?? autoDate);
 
   const validate = () => {
     const newErrors: Record<string, string> = {};

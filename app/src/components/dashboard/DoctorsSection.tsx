@@ -31,7 +31,20 @@ export function DoctorsSection() {
   const { data: doctors, isLoading } = trpc.patients.listDoctors.useQuery();
   const utils = trpc.useUtils();
   const [showDialog, setShowDialog] = useState(false);
-  const [selectedDoctor, setSelectedDoctor] = useState<any>(null);
+  const [selectedDoctor, setSelectedDoctor] = useState<{
+    id: number;
+    name: string;
+    credentials: string;
+    specialty: string;
+    registrationNumber: string;
+    serviceName: string | null;
+    branch: string | null;
+    image: string | null;
+    fees: number | null;
+    availability: string | null;
+    status: string;
+    availableDates: string | null;
+  } | null>(null);
 
   // Form states
   const [username, setUsername] = useState("");
@@ -93,7 +106,20 @@ export function DoctorsSection() {
     onError: (err) => alert(err.message),
   });
 
-  const handleEditClick = (doc: any) => {
+  const handleEditClick = (doc: {
+    id: number;
+    name: string;
+    credentials: string;
+    specialty: string;
+    registrationNumber: string;
+    serviceName: string | null;
+    branch: string | null;
+    image: string | null;
+    fees: number | null;
+    availability: string | null;
+    status: string;
+    availableDates: string | null;
+  }) => {
     setSelectedDoctor(doc);
     setName(doc.name);
     setCredentials(doc.credentials);
@@ -237,7 +263,7 @@ export function DoctorsSection() {
                   <label className="text-xs font-semibold mb-1 block">Status *</label>
                   <Select
                     value={status}
-                    onValueChange={(val: any) => setStatus(val)}
+                    onValueChange={(val: string) => setStatus(val)}
                   >
                     <SelectTrigger>
                       <SelectValue />

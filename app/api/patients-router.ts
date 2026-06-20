@@ -452,7 +452,7 @@ export const patientsRouter = createRouter({
         .orderBy(desc(appointments.createdAt));
 
       const appointmentIds = patientAppointments.map((a) => a.id);
-      let patientBills: any[] = [];
+      let patientBills: (typeof bills.$inferSelect)[] = [];
       if (appointmentIds.length > 0) {
         patientBills = await db
           .select()
