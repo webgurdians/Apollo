@@ -77,6 +77,10 @@ export default function AppointmentsSection() {
     },
   });
 
+  const confirmedOrPaidAppointments = appointments?.filter(
+    (apt) => apt.status === "confirmed" || apt.paymentStatus === "paid" || apt.status === "completed"
+  ) || [];
+
   if (isLoading) {
     return (
       <div className="bg-white rounded-xl border shadow-sm p-8 text-center">
@@ -85,10 +89,10 @@ export default function AppointmentsSection() {
     );
   }
 
-  if (!appointments?.length) {
+  if (!confirmedOrPaidAppointments.length) {
     return (
       <div className="bg-white rounded-xl border shadow-sm p-8 text-center text-muted-foreground">
-        No appointments yet. Patients will appear here after booking.
+        No confirmed or paid appointments yet.
       </div>
     );
   }
@@ -99,6 +103,7 @@ export default function AppointmentsSection() {
         <Table>
           <TableHeader>
             <TableRow className="bg-gray-50">
+              <TableHead>Token No</TableHead>
               <TableHead>ID</TableHead>
               <TableHead>Name</TableHead>
               <TableHead>Phone</TableHead>
@@ -111,10 +116,13 @@ export default function AppointmentsSection() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {appointments.map((apt) => (
+            {confirmedOrPaidAppointments.map((apt) => (
               <TableRow key={apt.id}>
-                <TableCell className="font-medium">#{apt.id}</TableCell>
-                <TableCell>{apt.name}</TableCell>
+                <TableCell className="font-semibold text-apollo-blue">
+                  {apt.appointmentNumber ? `Token #${apt.appointmentNumber}` : "—"}
+                </TableCell>
+                <TableCell className="font-medium text-muted-foreground">#{apt.id}</TableCell>
+                <TableCell className="font-medium">{apt.name}</TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <Phone className="w-3 h-3 text-muted-foreground" />

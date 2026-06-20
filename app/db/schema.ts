@@ -54,6 +54,7 @@ export const appointments = sqliteTable("appointments", {
     .notNull()
     .$onUpdateFn(() => new Date()),
   deletedAt: integer("deletedAt", { mode: "timestamp" }),
+  appointmentNumber: integer("appointmentNumber"),
 });
 
 export type Appointment = typeof appointments.$inferSelect;

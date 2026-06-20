@@ -2,7 +2,7 @@ import { z } from "zod";
 import { createRouter, publicQuery, staffQuery, clinicStaffQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import { appointments, contacts, doctors, bills, patients } from "@db/schema";
-import { eq, desc, and, isNull } from "drizzle-orm";
+import { eq, desc, and, isNull, inArray, isNotNull } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { logActivity } from "./lib/activity";
 
@@ -19,6 +19,105 @@ export const createAppointmentInput = z.object({
   age: z.coerce.number().optional(),
   gender: z.string().optional(),
 }).strict();
+
+async function getNextAppointmentNumber(db: any, doctorId: number | null, preferredDate: Date): Promise<number> {
+  const startOfDay = new Date(preferredDate);
+  startOfDay.setHours(0, 0, 0, 0);
+  const endOfDay = new Date(preferredDate);
+  endOfDay.setHours(23, 59, 59, 999);
+
+  const existing = await db
+    .select({ appointmentNumber: appointments.appointmentNumber })
+    .from(appointments)
+    .where(
+      and(
+        eq(appointments.doctorId, doctorId || 0),
+        isNull(appointments.deletedAt),
+        inArray(appointments.status, ["confirmed", "completed"]),
+        isNotNull(appointments.appointmentNumber)
+      )
+    );
+
+  // We filter in memory for preferredDate day match to handle timestamp conversions correctly
+  const sameDayAppointments = existing.filter((apt: any) => {
+    // If you need exact day matching
+    return true; // We will do date comparison inside query or filtered
+  });
+
+  const query = await db
+    .select({ appointmentNumber: appointments.appointmentNumber })
+    .from(appointments)
+    .where(
+      and(
+        doctorId ? eq(appointments.doctorId, doctorId) : isNull(appointments.doctorId),
+        isNull(appointments.deletedAt)
+      )
+    );
+
+  const matched = query.filter((a: any) => {
+    if (!a.appointmentNumber) return false;
+    // Check if preferredDate matches the same calendar day
+    const aptDate = new Date(preferredDate);
+    const dbDate = new Date(preferredDate); // placeholder, let's look at the appointment's preferredDate
+    return true; 
+  });
+
+  // Let's implement a robust day filtering query
+  const dayStart = new Date(preferredDate);
+  dayStart.setHours(0,0,0,0);
+  const dayEnd = new Date(preferredDate);
+  dayEnd.setHours(23,59,59,999);
+
+  // Filter correctly by checking if preferredDate is within the start/end of the day
+  const dailyConfirmed = await db
+    .select({ appointmentNumber: appointments.appointmentNumber })
+    .from(appointments)
+    .where(
+      and(
+        doctorId ? eq(appointments.doctorId, doctorId) : isNull(appointments.doctorId),
+        isNull(appointments.deletedAt)
+      )
+    );
+
+  const filtered = dailyConfirmed.filter((apt: any) => {
+    if (!apt.appointmentNumber) return false;
+    // Find appointments scheduled for the same calendar date
+    // We should compare preferredDate in DB (which is stored as Date or timestamp)
+    return true; // we will fetch all and compare below
+  });
+
+  // Let's write the query accurately:
+  // Since preferredDate is integer/timestamp or Date, we can fetch all for that doctor and filter in Javascript
+  const allForDoc = await db
+    .select({
+      id: appointments.id,
+      preferredDate: appointments.preferredDate,
+      appointmentNumber: appointments.appointmentNumber,
+      status: appointments.status,
+      paymentStatus: appointments.paymentStatus,
+    })
+    .from(appointments)
+    .where(
+      and(
+        doctorId ? eq(appointments.doctorId, doctorId) : isNull(appointments.doctorId),
+        isNull(appointments.deletedAt)
+      )
+    );
+
+  const targetDateStr = startOfDay.toDateString();
+  const dayTokens = allForDoc
+    .filter((apt: any) => {
+      if (!apt.appointmentNumber) return false;
+      const aptDate = new Date(apt.preferredDate);
+      return aptDate.toDateString() === targetDateStr;
+    })
+    .map((apt: any) => apt.appointmentNumber as number);
+
+  if (dayTokens.length === 0) {
+    return 1;
+  }
+  return Math.max(...dayTokens) + 1;
+}
 
 async function ensureBillCreated(db: any, appointmentId: number, paymentMethod: "online" | "cash" | "upi") {
   const [apt] = await db
@@ -126,18 +225,23 @@ export const appointmentRouter = createRouter({
         }
       }
 
-      // Upsert Patient Profile
+      // Upsert Patient Profile - match by both name and phone
       const existingPatients = await db
         .select()
         .from(patients)
-        .where(and(eq(patients.phone, input.phone), isNull(patients.deletedAt)))
+        .where(
+          and(
+            eq(patients.name, input.name),
+            eq(patients.phone, input.phone),
+            isNull(patients.deletedAt)
+          )
+        )
         .limit(1);
 
       if (existingPatients.length > 0) {
         await db
           .update(patients)
           .set({
-            name: input.name,
             age: input.age !== undefined ? input.age : existingPatients[0].age,
             gender: input.gender || existingPatients[0].gender,
             concern: input.message || existingPatients[0].concern,
@@ -158,11 +262,16 @@ export const appointmentRouter = createRouter({
       }
 
       const isPaid = input.paymentMethod === "online";
+      const preferredDate = new Date(input.preferredDate);
+      
+      // Calculate token number only if it is paid online
+      const appointmentNum = isPaid ? await getNextAppointmentNumber(db, doctorId, preferredDate) : null;
+
       const [insertedApt] = await db.insert(appointments).values({
         name: input.name,
         phone: input.phone,
         service: input.service,
-        preferredDate: new Date(input.preferredDate),
+        preferredDate: preferredDate,
         startTime: input.startTime ? new Date(input.startTime) : null,
         endTime: input.endTime ? new Date(input.endTime) : null,
         doctorId: doctorId,
@@ -170,6 +279,7 @@ export const appointmentRouter = createRouter({
         message: input.message || null,
         status: isPaid ? "confirmed" : "pending",
         paymentStatus: isPaid ? "paid" : "pending",
+        appointmentNumber: appointmentNum,
       }).returning({ id: appointments.id });
 
       if (isPaid && insertedApt) {
@@ -197,6 +307,7 @@ export const appointmentRouter = createRouter({
         paymentStatus: appointments.paymentStatus,
         createdAt: appointments.createdAt,
         updatedAt: appointments.updatedAt,
+        appointmentNumber: appointments.appointmentNumber,
         doctorName: doctors.name,
         doctorFees: doctors.fees,
       })
@@ -234,10 +345,35 @@ export const appointmentRouter = createRouter({
     )
     .mutation(async ({ input, ctx }) => {
       const db = getDb();
+      
+      const [apt] = await db
+        .select()
+        .from(appointments)
+        .where(eq(appointments.id, input.id))
+        .limit(1);
+
+      if (!apt) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Appointment not found" });
+      }
+
+      const updates: any = { paymentStatus: input.paymentStatus };
+
+      // If marked as paid, move straight to appointment tab as confirmed and assign token number if not already assigned
+      if (input.paymentStatus === "paid") {
+        updates.status = "confirmed";
+        if (!apt.appointmentNumber) {
+          updates.appointmentNumber = await getNextAppointmentNumber(db, apt.doctorId, new Date(apt.preferredDate));
+        }
+      }
+
       await db
         .update(appointments)
-        .set({ paymentStatus: input.paymentStatus })
+        .set(updates)
         .where(eq(appointments.id, input.id));
+
+      if (input.paymentStatus === "paid") {
+        await ensureBillCreated(db, input.id, "cash"); // default to cash for clinic updates
+      }
 
       await logActivity(ctx.user, "payment", "appointment", input.id,
         `Updated payment status to ${input.paymentStatus}`);
