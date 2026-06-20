@@ -10,9 +10,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Loader2, Search } from "lucide-react";
 import { format } from "date-fns";
-import { Badge } from "@/components/ui/badge";
 
 interface PatientQueueSectionProps {
   onViewPrescription?: (patientId: number) => void;
@@ -20,7 +26,12 @@ interface PatientQueueSectionProps {
 
 export default function PatientQueueSection({ onViewPrescription }: PatientQueueSectionProps) {
   const { data: patients, isLoading } = trpc.patients.list.useQuery();
+  const utils = trpc.useUtils();
   const [searchTerm, setSearchTerm] = useState("");
+
+  const updatePatientStatus = trpc.patients.updateStatus.useMutation({
+    onSuccess: () => utils.patients.list.invalidate(),
+  });
 
   const filteredPatients = patients?.filter(
     (p) =>
@@ -89,13 +100,27 @@ export default function PatientQueueSection({ onViewPrescription }: PatientQueue
                     )}
                   </TableCell>
                   <TableCell>
-                    <Badge variant="secondary" className={
-                      patient.status === "completed" ? "bg-green-100 text-green-700 capitalize hover:bg-green-100" :
-                      patient.status === "with_doctor" ? "bg-blue-100 text-blue-700 capitalize hover:bg-blue-100" :
-                      "bg-yellow-100 text-yellow-700 capitalize hover:bg-yellow-100"
-                    }>
-                      {patient.status.replace("_", " ")}
-                    </Badge>
+                    <Select
+                      value={patient.status}
+                      onValueChange={(val: "waiting" | "with_doctor" | "completed" | "inactive") =>
+                        updatePatientStatus.mutate({ id: patient.id, status: val })
+                      }
+                    >
+                      <SelectTrigger className={`w-32 h-8 text-xs font-semibold ${
+                        patient.status === "completed" ? "bg-green-100 text-green-700 hover:bg-green-100" :
+                        patient.status === "with_doctor" ? "bg-blue-100 text-blue-700 hover:bg-blue-100" :
+                        patient.status === "waiting" ? "bg-yellow-100 text-yellow-700 hover:bg-yellow-100" :
+                        "bg-gray-100 text-gray-500 hover:bg-gray-100"
+                      }`}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="waiting">Waiting</SelectItem>
+                        <SelectItem value="with_doctor">With Doctor</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                        <SelectItem value="inactive">Inactive</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
                     {patient.createdAt
