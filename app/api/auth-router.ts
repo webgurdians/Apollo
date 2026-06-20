@@ -37,6 +37,13 @@ export const authRouter = createRouter({
         throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid credentials" });
       }
 
+      if (user.role === "doctor" || user.role === "pharmacy" || user.role === "diagnostics") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Login access for this role is currently deactivated.",
+        });
+      }
+
       if (user.deletedAt) {
         throw new TRPCError({ code: "UNAUTHORIZED", message: "Account has been deactivated" });
       }

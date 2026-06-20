@@ -74,9 +74,30 @@ export const contacts = sqliteTable("contacts", {
 export type Contact = typeof contacts.$inferSelect;
 export type InsertContact = typeof contacts.$inferInsert;
 
+export const medicineOrders = sqliteTable("medicine_orders", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  patientId: integer("patientId").notNull().references(() => patients.id, { onDelete: "cascade" }),
+  items: text("items").notNull(), // JSON string: { name: string, quantity: number, price: number }[]
+  totalAmount: integer("totalAmount").notNull(),
+  paymentStatus: text("paymentStatus", { enum: ["pending", "paid"] }).default("pending").notNull(),
+  deliveryStatus: text("deliveryStatus", { enum: ["placed", "out_for_delivery", "delivered", "cancelled"] }).default("placed").notNull(),
+  createdAt: integer("createdAt", { mode: "timestamp" })
+    .$defaultFn(() => new Date())
+    .notNull(),
+  updatedAt: integer("updatedAt", { mode: "timestamp" })
+    .$defaultFn(() => new Date())
+    .notNull()
+    .$onUpdateFn(() => new Date()),
+  deletedAt: integer("deletedAt", { mode: "timestamp" }),
+});
+
+export type MedicineOrder = typeof medicineOrders.$inferSelect;
+export type InsertMedicineOrder = typeof medicineOrders.$inferInsert;
+
 export const bills = sqliteTable("bills", {
   id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
-  appointmentId: integer("appointmentId").notNull().references(() => appointments.id, { onDelete: "cascade" }),
+  appointmentId: integer("appointmentId").references(() => appointments.id, { onDelete: "cascade" }),
+  medicineOrderId: integer("medicineOrderId").references(() => medicineOrders.id, { onDelete: "cascade" }),
   amount: integer("amount").notNull(),
   tax: integer("tax").default(0).notNull(),
   discount: integer("discount").default(0).notNull(),

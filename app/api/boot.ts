@@ -11,6 +11,8 @@ import { getDb } from "./queries/connection";
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 import path from "path";
 
+const __dirname = path.resolve(process.cwd(), "api");
+
 // Run migrations automatically on server boot
 try {
   const db = getDb();

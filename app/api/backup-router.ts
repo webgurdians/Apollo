@@ -29,7 +29,10 @@ function getBackupPath(filename: string): string {
 export const backupRouter = createRouter({
   create: adminQuery.mutation(async ({ ctx }) => {
     ensureBackupDir();
-    const dbPath = path.resolve(process.cwd(), env.databaseUrl);
+    let dbPath = path.resolve(process.cwd(), env.databaseUrl);
+    if (fs.existsSync(dbPath) && fs.statSync(dbPath).isDirectory()) {
+      dbPath = path.join(dbPath, "sqlite.db");
+    }
 
     if (!fs.existsSync(dbPath)) {
       throw new TRPCError({ code: "NOT_FOUND", message: "Database file not found" });
@@ -99,7 +102,10 @@ export const backupRouter = createRouter({
     }))
     .mutation(async ({ input, ctx }) => {
       ensureBackupDir();
-      const dbPath = path.resolve(process.cwd(), env.databaseUrl);
+      let dbPath = path.resolve(process.cwd(), env.databaseUrl);
+      if (fs.existsSync(dbPath) && fs.statSync(dbPath).isDirectory()) {
+        dbPath = path.join(dbPath, "sqlite.db");
+      }
 
       let sourcePath: string;
       if (input.data) {

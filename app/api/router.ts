@@ -6,6 +6,7 @@ import { prescriptionsRouter } from "./prescriptions-router";
 import { backupRouter } from "./backup-router";
 import { searchRouter } from "./search-router";
 import { activityRouter } from "./activity-router";
+import { medicineOrdersRouter } from "./medicine-orders-router";
 import { createRouter, publicQuery } from "./middleware";
 
 export const appRouter = createRouter({
@@ -19,6 +20,7 @@ export const appRouter = createRouter({
   backup: backupRouter,
   search: searchRouter,
   activity: activityRouter,
+  medicineOrders: medicineOrdersRouter,
 });
 
 export type AppRouter = typeof appRouter;

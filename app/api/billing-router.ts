@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { createRouter, publicQuery, billingQuery } from "./middleware";
 import { getDb } from "./queries/connection";
-import { bills, appointments } from "@db/schema";
+import { bills, appointments, medicineOrders, patients } from "@db/schema";
 import { eq, desc, and, isNull } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { logActivity } from "./lib/activity";
@@ -13,6 +13,7 @@ export const billingRouter = createRouter({
       .select({
         id: bills.id,
         appointmentId: bills.appointmentId,
+        medicineOrderId: bills.medicineOrderId,
         amount: bills.amount,
         tax: bills.tax,
         discount: bills.discount,
@@ -23,15 +24,25 @@ export const billingRouter = createRouter({
         lockedAt: bills.lockedAt,
         createdAt: bills.createdAt,
         updatedAt: bills.updatedAt,
-        patientName: appointments.name,
-        patientPhone: appointments.phone,
-        service: appointments.service,
+        appointmentName: appointments.name,
+        appointmentPhone: appointments.phone,
+        appointmentService: appointments.service,
+        patientName: patients.name,
+        patientPhone: patients.phone,
       })
       .from(bills)
-      .innerJoin(appointments, eq(bills.appointmentId, appointments.id))
+      .leftJoin(appointments, eq(bills.appointmentId, appointments.id))
+      .leftJoin(medicineOrders, eq(bills.medicineOrderId, medicineOrders.id))
+      .leftJoin(patients, eq(medicineOrders.patientId, patients.id))
       .where(isNull(bills.deletedAt))
       .orderBy(desc(bills.createdAt));
-    return results;
+
+    return results.map((row) => ({
+      ...row,
+      patientName: row.appointmentName || row.patientName || "Walk-in Patient",
+      patientPhone: row.appointmentPhone || row.patientPhone || "—",
+      service: row.appointmentService || "Medicine Order",
+    }));
   }),
 
   create: billingQuery

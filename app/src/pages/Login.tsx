@@ -14,13 +14,14 @@ export default function Login() {
 
   const loginMutation = trpc.auth.login.useMutation({
     onSuccess: (data) => {
-      if (data.role === "doctor") {
+      const role = data.role as any;
+      if (role === "doctor") {
         navigate("/doctor");
-      } else if (data.role === "pharmacy") {
+      } else if (role === "pharmacy") {
         navigate("/pharmacy");
-      } else if (data.role === "diagnostics") {
+      } else if (role === "diagnostics") {
         navigate("/diagnostics");
-      } else if (data.role === "front_desk") {
+      } else if (role === "front_desk") {
         navigate("/front-desk");
       } else {
         navigate("/admin");

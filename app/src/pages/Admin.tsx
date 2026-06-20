@@ -2,7 +2,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { trpc } from "@/providers/trpc";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { LogOut, History, Shield, FileText, MessageSquare, Calendar, Users, CreditCard, Mail, Stethoscope, UserPlus, AlertTriangle } from "lucide-react";
+import { LogOut, History, Shield, FileText, MessageSquare, Calendar, Users, CreditCard, Mail, Stethoscope, UserPlus, AlertTriangle, ShoppingBag } from "lucide-react";
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -23,6 +23,7 @@ import { FeaturedDoctorPopupConfig } from "@/components/FeaturedDoctorPopupConfi
 import { WhatsAppTemplates } from "@/components/WhatsAppTemplates";
 import { EndOfDayReport } from "@/components/EndOfDayReport";
 import { useSessionTimeout } from "@/hooks/useSessionTimeout";
+import MedicineOrdersSection from "@/components/dashboard/MedicineOrdersSection";
 
 export default function Admin() {
   const { user, logout } = useAuth();
@@ -90,6 +91,10 @@ export default function Admin() {
                 <CreditCard className="w-4 h-4" />
                 Billing
               </TabsTrigger>
+              <TabsTrigger value="medicine_orders" className="flex items-center gap-1.5">
+                <ShoppingBag className="w-4 h-4" />
+                Medicine Orders
+              </TabsTrigger>
               <TabsTrigger value="contacts" className="flex items-center gap-1.5">
                 <Mail className="w-4 h-4" />
                 Enquiries
@@ -131,6 +136,10 @@ export default function Admin() {
 
           <TabsContent value="billing">
             <BillingSection />
+          </TabsContent>
+
+          <TabsContent value="medicine_orders">
+            <MedicineOrdersSection />
           </TabsContent>
 
           <TabsContent value="contacts">

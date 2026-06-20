@@ -361,32 +361,29 @@ export const appointmentRouter = createRouter({
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const servicePrices: Record<string, number> = {
-      "OPD Consultation - General Physician": 500,
-      "OPD Consultation - Diabetes & Thyroid": 600,
-      "OPD Consultation - Cardiology (BP/ECG)": 800,
-      "Blood Test / Pathology": 1200,
-      "ECG": 300,
-      "X-Ray": 500,
-      "Urine Test": 150,
-      "Ultrasound": 1000,
-      "Apollo Chennai Referral": 1500,
-      "Health Checkup Package": 2999,
-    };
-
-    const getPrice = (a: { service: string; doctorFees: number | null }) => {
-      return a.doctorFees ?? servicePrices[a.service] ?? 500;
-    };
-
     const todayAppointments = all.filter((a) => {
       const d = new Date(a.createdAt);
       d.setHours(0, 0, 0, 0);
       return d.getTime() === today.getTime();
     });
 
-    const todayRevenue = todayAppointments
-      .filter((a) => a.paymentStatus === "paid")
-      .reduce((sum, a) => sum + getPrice(a), 0);
+    // Calculate revenue from bills (includes both appointments and medicine orders)
+    const paidBills = await db
+      .select({
+        total: bills.total,
+        status: bills.status,
+        createdAt: bills.createdAt,
+      })
+      .from(bills)
+      .where(and(eq(bills.status, "paid"), isNull(bills.deletedAt)));
+
+    const todayRevenue = paidBills
+      .filter((b) => {
+        const d = new Date(b.createdAt);
+        d.setHours(0, 0, 0, 0);
+        return d.getTime() === today.getTime();
+      })
+      .reduce((sum, b) => sum + b.total, 0);
 
     const monthStart = new Date();
     monthStart.setDate(1);
@@ -397,9 +394,12 @@ export const appointmentRouter = createRouter({
       return d.getTime() >= monthStart.getTime();
     });
 
-    const monthRevenue = monthAppointments
-      .filter((a) => a.paymentStatus === "paid")
-      .reduce((sum, a) => sum + getPrice(a), 0);
+    const monthRevenue = paidBills
+      .filter((b) => {
+        const d = new Date(b.createdAt);
+        return d.getTime() >= monthStart.getTime();
+      })
+      .reduce((sum, b) => sum + b.total, 0);
 
     // Count new vs returning patients
     const todayPhones = new Set(todayAppointments.map((a) => a.phone));

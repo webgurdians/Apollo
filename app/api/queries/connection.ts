@@ -14,7 +14,7 @@ let instance: ReturnType<typeof drizzle<typeof fullSchema>>;
 export function getDb() {
   if (!instance) {
     let dbPath = env.databaseUrl;
-    let sqlite;
+    let sqlite: any;
     
     try {
       if (dbPath && dbPath !== ":memory:") {
@@ -71,9 +71,114 @@ export function getDb() {
         dbPath = resolvedPath;
       }
       sqlite = new Database(dbPath);
+      
+      // Auto-migrate tables (only for non-memory databases)
+      if (dbPath !== ":memory:") {
+        sqlite.exec(`
+          CREATE TABLE IF NOT EXISTS medicine_orders (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            patientId INTEGER NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
+            items TEXT NOT NULL,
+            totalAmount INTEGER NOT NULL,
+            paymentStatus TEXT DEFAULT 'pending' NOT NULL,
+            deliveryStatus TEXT DEFAULT 'placed' NOT NULL,
+            createdAt INTEGER NOT NULL,
+            updatedAt INTEGER NOT NULL,
+            deletedAt INTEGER
+          );
+        `);
+
+        // Check if medicineOrderId column exists in bills table
+        const billsTableExists = sqlite.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='bills';").get();
+        if (billsTableExists) {
+          const columns = sqlite.prepare("PRAGMA table_info(bills);").all() as { name: string }[];
+          const hasMedicineOrderId = columns.some((c) => c.name === "medicineOrderId");
+          if (!hasMedicineOrderId) {
+            console.log("Migrating bills table to support nullable appointmentId and medicineOrderId...");
+            sqlite.transaction(() => {
+              sqlite.exec("ALTER TABLE bills RENAME TO bills_old;");
+              sqlite.exec(`
+                CREATE TABLE bills (
+                  id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  appointmentId INTEGER REFERENCES appointments(id) ON DELETE CASCADE,
+                  medicineOrderId INTEGER REFERENCES medicine_orders(id) ON DELETE CASCADE,
+                  amount INTEGER NOT NULL,
+                  tax INTEGER DEFAULT 0 NOT NULL,
+                  discount INTEGER DEFAULT 0 NOT NULL,
+                  total INTEGER NOT NULL,
+                  status TEXT DEFAULT 'unpaid' NOT NULL,
+                  paymentMethod TEXT,
+                  correctionNote TEXT,
+                  lockedAt INTEGER,
+                  createdAt INTEGER NOT NULL,
+                  updatedAt INTEGER NOT NULL,
+                  deletedAt INTEGER
+                );
+              `);
+              sqlite.exec(`
+                INSERT INTO bills (id, appointmentId, amount, tax, discount, total, status, paymentMethod, correctionNote, lockedAt, createdAt, updatedAt, deletedAt)
+                SELECT id, appointmentId, amount, tax, discount, total, status, paymentMethod, correctionNote, lockedAt, createdAt, updatedAt, deletedAt FROM bills_old;
+              `);
+              sqlite.exec("DROP TABLE bills_old;");
+            })();
+            console.log("Bills table migration completed successfully.");
+          }
+        }
+      }
     } catch (err) {
       console.error(`Failed to initialize database at ${dbPath || "default"}, falling back to local sqlite.db:`, err);
       sqlite = new Database("sqlite.db");
+      
+      try {
+        sqlite.exec(`
+          CREATE TABLE IF NOT EXISTS medicine_orders (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            patientId INTEGER NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
+            items TEXT NOT NULL,
+            totalAmount INTEGER NOT NULL,
+            paymentStatus TEXT DEFAULT 'pending' NOT NULL,
+            deliveryStatus TEXT DEFAULT 'placed' NOT NULL,
+            createdAt INTEGER NOT NULL,
+            updatedAt INTEGER NOT NULL,
+            deletedAt INTEGER
+          );
+        `);
+        const fallbackBillsTableExists = sqlite.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='bills';").get();
+        if (fallbackBillsTableExists) {
+          const columns = sqlite.prepare("PRAGMA table_info(bills);").all() as { name: string }[];
+          const hasMedicineOrderId = columns.some((c) => c.name === "medicineOrderId");
+          if (!hasMedicineOrderId) {
+            sqlite.transaction(() => {
+              sqlite.exec("ALTER TABLE bills RENAME TO bills_old;");
+              sqlite.exec(`
+                CREATE TABLE bills (
+                  id INTEGER PRIMARY KEY AUTOINCREMENT,
+                  appointmentId INTEGER REFERENCES appointments(id) ON DELETE CASCADE,
+                  medicineOrderId INTEGER REFERENCES medicine_orders(id) ON DELETE CASCADE,
+                  amount INTEGER NOT NULL,
+                  tax INTEGER DEFAULT 0 NOT NULL,
+                  discount INTEGER DEFAULT 0 NOT NULL,
+                  total INTEGER NOT NULL,
+                  status TEXT DEFAULT 'unpaid' NOT NULL,
+                  paymentMethod TEXT,
+                  correctionNote TEXT,
+                  lockedAt INTEGER,
+                  createdAt INTEGER NOT NULL,
+                  updatedAt INTEGER NOT NULL,
+                  deletedAt INTEGER
+                );
+              `);
+              sqlite.exec(`
+                INSERT INTO bills (id, appointmentId, amount, tax, discount, total, status, paymentMethod, correctionNote, lockedAt, createdAt, updatedAt, deletedAt)
+                SELECT id, appointmentId, amount, tax, discount, total, status, paymentMethod, correctionNote, lockedAt, createdAt, updatedAt, deletedAt FROM bills_old;
+              `);
+              sqlite.exec("DROP TABLE bills_old;");
+            })();
+          }
+        }
+      } catch (fallbackErr) {
+        console.error("Failed to run migrations on fallback database:", fallbackErr);
+      }
     }
     
     instance = drizzle(sqlite, { schema: fullSchema });
