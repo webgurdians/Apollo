@@ -10,6 +10,8 @@ import { getPrescriptionSecureToken, generatePrescriptionPdf } from "./lib/pdf";
 import { getDb } from "./queries/connection";
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 import path from "path";
+import crypto from "crypto";
+import Database from "better-sqlite3";
 
 const __dirname = path.resolve(process.cwd(), "api");
 
@@ -20,6 +22,65 @@ try {
   console.log("Database migrations applied successfully.");
 } catch (error) {
   console.error("Failed to run database migrations:", error);
+}
+
+// Auto-seed admin user + doctors on fresh database
+function hashPassword(password: string): string {
+  const salt = crypto.randomBytes(16).toString("hex");
+  const hash = crypto.scryptSync(password, salt, 64).toString("hex");
+  return `${salt}:${hash}`;
+}
+
+try {
+  const seedDb = new Database(env.databaseUrl || "sqlite.db");
+  const row = seedDb.prepare("SELECT COUNT(*) as count FROM users").get() as { count: number };
+  if (row.count === 0) {
+    const now = Date.now();
+
+    const seedAdminUser = process.env.SEED_ADMIN_USERNAME || "admin";
+    const seedAdminPass = process.env.SEED_ADMIN_PASSWORD || "admin123";
+
+    seedDb.prepare(`
+      INSERT INTO users (username, passwordHash, name, role, createdAt, updatedAt, lastSignInAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(seedAdminUser, hashPassword(seedAdminPass), "Super Admin", "founder", now, now, now);
+    console.log(`Seed: created admin user "${seedAdminUser}" (founder role)`);
+
+    const pass = "apollo123";
+    const doctors = [
+      { username: "drvigneshthanik", name: "Dr. Vignesh Thanikgaivasan", specialty: "Cardiology", credentials: "MBBS, MD (Gen Med), DM (Cardiology) AFAPSIC, FIMSA", reg: "REG-001", serviceName: "Dr. Vignesh Thanikgaivasan - Cardiology", branch: "Apollo Hospitals Greams Road, Chennai", fees: 1200, availability: "Monday & Saturday (11:00 AM – 3:00 PM)" },
+      { username: "drnithyanarayan", name: "Dr. Nithya Narayanan", specialty: "ENT / Covid Consult", credentials: "MBBS, DLO, DNB (ENT), MNAMS", reg: "REG-002", serviceName: "Dr. Nithya Narayanan - ENT / Covid Consult", branch: "Apollo Hospitals Greams Road, Chennai", fees: 1200, availability: "Tuesday (10:00 AM – 2:00 PM)" },
+      { username: "dranushad", name: "Dr. Anusha D", specialty: "Consultant Neurologist", credentials: "MBBS, MD, DM", reg: "REG-003", serviceName: "Dr. Anusha D - Consultant Neurologist", branch: "Apollo Hospitals OMR, Chennai", fees: 1200, availability: "Wednesday (9:00 AM – 1:00 PM)" },
+      { username: "drjothiparthasa", name: "Dr. Jothi Parthasarathy S", specialty: "Neonatology / Pediatrics", credentials: "MBBS, MD (Paediatrics)", reg: "REG-004", serviceName: "Dr. Jothi Parthasarathy S - Neonatology", branch: "Apollo Children Hospitals Greams Road, Chennai", fees: 1200, availability: "Thursday (10:00 AM – 2:00 PM)" },
+      { username: "drgauthamkrishna", name: "Dr. Gautham Krishnamurthy", specialty: "Surgical Gastroenterology & GI Oncology", credentials: "MBBS, MS (Gen Surg), MCh (Surgical Gastroenterology)", reg: "REG-005", serviceName: "Dr. Gautham Krishnamurthy - Surgical Gastroenterology & GI Oncology", branch: "Apollo Hospitals Greams Road, Chennai", fees: 1200, availability: "Friday (11:00 AM – 3:00 PM)" },
+      { username: "drjatinsoni", name: "Dr. Jatin Soni", specialty: "Urology", credentials: "MBBS, MS (General Surgery), MCh (Urology)", reg: "REG-006", serviceName: "Dr. Jatin Soni - Urology", branch: "Apollo Hospitals Chennai", fees: 1200, availability: "Saturday (9:30 AM – 2:30 PM)" },
+      { username: "drvishnuabishek", name: "Dr. Vishnu Abishek Raju", specialty: "Gastroenterology / GI Medicine", credentials: "MBBS, MD (Internal Medicine), DM (Gastroenterology)", reg: "REG-007", serviceName: "Dr. Vishnu Abishek Raju - Gastroenterology", branch: "Apollo Hospitals Greams Road, Chennai", fees: 1200, availability: "Friday (11:00 AM – 3:00 PM)" },
+      { username: "drrakeshshetty", name: "Dr. Rakesh Shetty", specialty: "Orthopedics-Sports Medicine", credentials: "MBBS, DNB (Orthopaedic) Certified in spine and joint Replacement Surgeon (Languages: English, Telugu, Tamil, Kannada, Bengali, Tulu, Marathi, Hindi)", reg: "REG-008", serviceName: "Dr. Rakesh Shetty - Orthopedics-Sports Medicine", branch: "Apollo Hospitals Chennai", fees: 1200, availability: "Monday & Wednesday (2:00 PM – 5:00 PM)" },
+    ];
+
+    for (const doc of doctors) {
+      seedDb.prepare(`
+        INSERT INTO users (username, passwordHash, name, role, createdAt, updatedAt, lastSignInAt)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run(doc.username, hashPassword(pass), doc.name, "doctor", now, now, now);
+
+      const userRow = seedDb.prepare("SELECT id FROM users WHERE username = ?").get(doc.username) as { id: number };
+
+      seedDb.prepare(`
+        INSERT INTO doctors (name, credentials, specialty, registrationNumber, userId, serviceName, branch, fees, availability, status, createdAt, updatedAt)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(doc.name, doc.credentials, doc.specialty, doc.reg, userRow.id, doc.serviceName, doc.branch, doc.fees, doc.availability, "Available", now, now);
+    }
+
+    console.log(`Seed: created ${doctors.length} doctor accounts`);
+    console.log(`Login: "${seedAdminUser}" / "${seedAdminPass}" (founder)`);
+    console.log(`Doctor password: "${pass}" for all doctors`);
+  } else {
+    console.log(`Seed: ${row.count} users exist, skipping auto-seed`);
+  }
+  seedDb.close();
+} catch (error) {
+  console.error("Auto-seed error:", error);
 }
 import {
   prescriptions,
