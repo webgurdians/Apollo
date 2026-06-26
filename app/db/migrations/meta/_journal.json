@@ -47,36 +47,8 @@
     {
       "idx": 6,
       "version": "6",
-      "when": 1781863417022,
-      "tag": "0006_panoramic_mother_askani",
-      "breakpoints": true
-    },
-    {
-      "idx": 7,
-      "version": "6",
-      "when": 1781869936972,
-      "tag": "0007_hesitant_sheva_callister",
-      "breakpoints": true
-    },
-    {
-      "idx": 8,
-      "version": "6",
-      "when": 1781979178241,
-      "tag": "0008_lonely_amphibian",
-      "breakpoints": true
-    },
-    {
-      "idx": 9,
-      "version": "6",
-      "when": 1781980305363,
-      "tag": "0009_awesome_post",
-      "breakpoints": true
-    },
-    {
-      "idx": 10,
-      "version": "6",
-      "when": 1781987494140,
-      "tag": "0010_slimy_giant_girl",
+      "when": 1782468097839,
+      "tag": "0006_spicy_puff_adder",
       "breakpoints": true
     }
   ]

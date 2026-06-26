@@ -243,5 +243,27 @@ export const settings = sqliteTable("settings", {
     .$onUpdateFn(() => new Date()),
 });
 
+export const patientReports = sqliteTable("patient_reports", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  patientId: integer("patientId").notNull().references(() => patients.id, { onDelete: "cascade" }),
+  doctorId: integer("doctorId").notNull().references(() => doctors.id, { onDelete: "cascade" }),
+  uploadedById: integer("uploadedById").notNull().references(() => users.id),
+  reportType: text("reportType").notNull(),
+  fileUrl: text("fileUrl").notNull(),
+  fileName: text("fileName").notNull(),
+  fileType: text("fileType").notNull(),
+  status: text("status", { enum: ["pending", "to_be_sent", "sent", "viewed"] }).default("pending").notNull(),
+  whatsappSentAt: integer("whatsappSentAt", { mode: "timestamp" }),
+  sentAt: integer("sentAt", { mode: "timestamp" }),
+  viewedAt: integer("viewedAt", { mode: "timestamp" }),
+  notes: text("notes"),
+  createdAt: integer("createdAt", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+  updatedAt: integer("updatedAt", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull().$onUpdateFn(() => new Date()),
+  deletedAt: integer("deletedAt", { mode: "timestamp" }),
+});
+
+export type PatientReport = typeof patientReports.$inferSelect;
+export type InsertPatientReport = typeof patientReports.$inferInsert;
+
 export type Setting = typeof settings.$inferSelect;
 export type InsertSetting = typeof settings.$inferInsert;

@@ -2,6 +2,7 @@ import { relations } from "drizzle-orm";
 import {
   users, appointments, bills, doctors, patients,
   prescriptions, prescriptionMedicines, prescriptionTests, activityLogs,
+  patientReports,
 } from "./schema";
 
 export const usersRelations = relations(users, ({ many }) => ({
@@ -41,6 +42,12 @@ export const appointmentsRelations = relations(appointments, ({ many }) => ({
 
 export const billsRelations = relations(bills, ({ one }) => ({
   appointment: one(appointments, { fields: [bills.appointmentId], references: [appointments.id] }),
+}));
+
+export const patientReportsRelations = relations(patientReports, ({ one }) => ({
+  patient: one(patients, { fields: [patientReports.patientId], references: [patients.id] }),
+  doctor: one(doctors, { fields: [patientReports.doctorId], references: [doctors.id] }),
+  uploadedBy: one(users, { fields: [patientReports.uploadedById], references: [users.id] }),
 }));
 
 export const activityLogsRelations = relations(activityLogs, ({ one }) => ({

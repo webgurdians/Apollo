@@ -16,4 +16,9 @@ export const env = {
     : ["https://apollo-mald.vercel.app", "https://capollo.co.in", "https://www.capollo.co.in"],
   razorpayKeyId: process.env.VITE_RAZORPAY_KEY_ID || "",
   razorpayKeySecret: process.env.RAZORPAY_KEY_SECRET || "",
+  s3Bucket: process.env.S3_BUCKET || "",
+  s3PublicUrl: process.env.S3_PUBLIC_URL || "",
+  s3Region: process.env.S3_REGION || "auto",
+  s3AccessKeyId: process.env.S3_ACCESS_KEY_ID || "",
+  s3SecretAccessKey: process.env.S3_SECRET_ACCESS_KEY || "",
 };
