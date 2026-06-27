@@ -123,6 +123,22 @@ try {
       }), Date.now());
       console.log("Seed: created default feature flags (existing users, no flags)");
     }
+    const nullImages = seedDb.prepare("SELECT id, name FROM doctors WHERE image IS NULL OR image = ''").all() as { id: number; name: string }[];
+    for (const doc of nullImages) {
+      const nameLower = doc.name.replace(/^Dr\.\s*/i, "").toLowerCase();
+      let imgPath = "/images/jatin.jpg";
+      if (nameLower.includes("vignesh")) imgPath = "/images/vignesh.jpg";
+      else if (nameLower.includes("nithya")) imgPath = "/images/nithya.jpg";
+      else if (nameLower.includes("anusha")) imgPath = "/images/anusha.jpg";
+      else if (nameLower.includes("jothi") || nameLower.includes("jyoti")) imgPath = "/images/jothi.jpg";
+      else if (nameLower.includes("gautham")) imgPath = "/images/gautham.jpg";
+      else if (nameLower.includes("vishnu")) imgPath = "/images/vishnu.jpg";
+      else if (nameLower.includes("jatin")) imgPath = "/images/jatin.jpg";
+      else if (nameLower.includes("rakesh")) imgPath = "/images/rakesh.jpg";
+      seedDb.prepare("UPDATE doctors SET image = ? WHERE id = ?").run(imgPath, doc.id);
+    }
+    if (nullImages.length > 0) console.log(`Seed: fixed ${nullImages.length} doctor images`);
+
     console.log(`Seed: ${row.count} users exist, skipping auto-seed`);
   }
   seedDb.close();
