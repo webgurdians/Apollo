@@ -127,6 +127,8 @@
     "payAtClinicDesc": "Pay at clinic subject to confirmation",
     "totalAmount": "Total Amount:",
     "requestAppointment": "Request Appointment",
+    "payNowConfirm": "Pay Now and Confirm Booking",
+    "payClinicConfirm": "Pay at Clinic (Subject to Confirmation)",
     "pleaseWait": "Please wait...",
     "consent": "By submitting, you agree to receive appointment details via WhatsApp.",
     "submittedTitle": "Appointment Request Sent!",

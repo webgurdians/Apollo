@@ -85,7 +85,7 @@ export default function AppointmentForm({
   };
 
   const [message, setMessage] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<"online" | "clinic">("clinic");
+  const [paymentMethod, setPaymentMethod] = useState<"online" | "clinic">("online");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
 
@@ -336,7 +336,7 @@ export default function AppointmentForm({
                 <div>
                   <h4 className="font-semibold text-gray-900">{t("appointment.preferCall")}</h4>
                   <p className="text-sm text-muted-foreground">
-                    {t("appointment.preferCallDesc", { phone: "+91 98765 43210" })}
+                    {t("appointment.preferCallDesc", { phone: "+91 76999 33383" })}
                   </p>
                 </div>
               </div>
@@ -556,7 +556,7 @@ export default function AppointmentForm({
                   ) : (
                     <>
                       <CheckCircle className="w-5 h-5" />
-                      {t("appointment.requestAppointment")}
+                      {paymentMethod === "online" ? t("appointment.payNowConfirm") : t("appointment.payClinicConfirm")}
                     </>
                   )}
                 </Button>
