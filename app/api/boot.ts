@@ -15,6 +15,14 @@ import Database from "better-sqlite3";
 
 const __dirname = path.resolve(process.cwd(), "api");
 
+function getDatabasePath() {
+  const url = env.databaseUrl;
+  if (!url || url.startsWith("postgres:") || url.startsWith("postgresql:")) {
+    return "sqlite.db";
+  }
+  return url;
+}
+
 // Run migrations automatically on server boot
 try {
   const db = getDb();
@@ -24,7 +32,7 @@ try {
   console.error("Failed to run database migrations:", error);
   try {
     const fs = await import("fs");
-    const dbPath = path.resolve(process.cwd(), env.databaseUrl || "sqlite.db");
+    const dbPath = path.resolve(process.cwd(), getDatabasePath());
     if (fs.existsSync(dbPath)) {
       console.log("Removing corrupted or mismatched database file:", dbPath);
       fs.unlinkSync(dbPath);
@@ -58,7 +66,7 @@ function hashPassword(password: string): string {
 
 export function runSeeding() {
   try {
-    const seedDb = new Database(env.databaseUrl || "sqlite.db");
+    const seedDb = new Database(getDatabasePath());
     const row = seedDb.prepare("SELECT COUNT(*) as count FROM users").get() as { count: number };
   if (row.count === 0) {
     const now = Date.now();

@@ -14,6 +14,9 @@ let instance: ReturnType<typeof drizzle<typeof fullSchema>>;
 export function getDb() {
   if (!instance) {
     let dbPath = env.databaseUrl;
+    if (dbPath && (dbPath.startsWith("postgres:") || dbPath.startsWith("postgresql:"))) {
+      dbPath = "sqlite.db";
+    }
     let sqlite: any;
     
     try {
