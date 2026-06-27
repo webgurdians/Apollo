@@ -79,7 +79,8 @@ function hashPassword(password: string): string {
 
 export function runSeeding() {
   try {
-    const seedDb = new Database(getDatabasePath());
+    // Reuse the same DB connection that migrations ran on (avoids path mismatch)
+    const seedDb = getDb().$client;
     const row = seedDb.prepare("SELECT COUNT(*) as count FROM users").get() as { count: number };
   if (row.count === 0) {
     const now = Date.now();
@@ -188,7 +189,6 @@ export function runSeeding() {
 
     console.log(`Seed: ${row.count} users exist, skipping auto-seed`);
   }
-    seedDb.close();
   } catch (error) {
     logError("Auto-seed error:", error);
   }
