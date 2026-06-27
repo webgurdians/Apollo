@@ -11,6 +11,7 @@ import { getDb } from "./queries/connection";
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 import path from "path";
 import crypto from "crypto";
+import fs from "fs";
 import Database from "better-sqlite3";
 
 const __dirname = path.resolve(process.cwd(), "api");
@@ -32,18 +33,27 @@ try {
 
 // Clear dummy patient records (one-time cleanup)
 try {
-  const cleanDb = new Database(env.databaseUrl || "sqlite.db");
+  let cleanDbPath = env.databaseUrl || "sqlite.db";
+  let resolvedPath = path.resolve(cleanDbPath);
+  if (fs.existsSync(resolvedPath) && fs.statSync(resolvedPath).isDirectory()) {
+    resolvedPath = path.join(resolvedPath, "sqlite.db");
+  }
+  const cleanDb = new Database(resolvedPath);
   const alreadyCleaned = cleanDb.prepare(`SELECT value FROM settings WHERE key = 'patients_cleaned'`).get() as { value?: string } | undefined;
   if (!alreadyCleaned) {
     cleanDb.prepare(`DELETE FROM patient_reports`).run();
     cleanDb.prepare(`DELETE FROM bills`).run();
+    cleanDb.prepare(`DELETE FROM prescriptions`).run();
+    cleanDb.prepare(`DELETE FROM medicine_orders`).run();
     cleanDb.prepare(`DELETE FROM appointments`).run();
     cleanDb.prepare(`DELETE FROM patients`).run();
     cleanDb.prepare(`INSERT OR IGNORE INTO settings (key, value, updatedAt) VALUES ('patients_cleaned', '1', ?)`).run(Date.now());
     console.log("Cleaned up dummy patient records.");
   }
   cleanDb.close();
-} catch {}
+} catch (e) {
+  console.error("Patient cleanup failed:", e);
+}
 
 // Auto-seed admin user + doctors on fresh database
 function hashPassword(password: string): string {
