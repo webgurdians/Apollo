@@ -92,6 +92,7 @@ export function getDb() {
         `);
 
         // Nuclear fallback: ensure ALL core tables exist regardless of migration status
+        // Order matters: referenced tables must be created before tables that reference them
         sqlite.exec(`
           CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -107,6 +108,38 @@ export function getDb() {
             deletedAt INTEGER
           );
 
+          CREATE TABLE IF NOT EXISTS doctors (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            credentials TEXT NOT NULL,
+            specialty TEXT NOT NULL,
+            registrationNumber TEXT NOT NULL,
+            signatureImageUrl TEXT,
+            userId INTEGER NOT NULL,
+            serviceName TEXT,
+            branch TEXT,
+            image TEXT,
+            fees INTEGER DEFAULT 1200,
+            availability TEXT,
+            status TEXT DEFAULT 'Available' NOT NULL,
+            availableDates TEXT,
+            deletedAt INTEGER
+          );
+
+          CREATE TABLE IF NOT EXISTS patients (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            age INTEGER NOT NULL,
+            gender TEXT NOT NULL,
+            phone TEXT NOT NULL,
+            concern TEXT NOT NULL,
+            status TEXT DEFAULT 'waiting' NOT NULL,
+            assignedDoctorId INTEGER,
+            deletedAt INTEGER,
+            createdAt INTEGER NOT NULL,
+            updatedAt INTEGER NOT NULL
+          );
+
           CREATE TABLE IF NOT EXISTS appointments (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
@@ -118,7 +151,7 @@ export function getDb() {
             paymentStatus TEXT DEFAULT 'pending' NOT NULL,
             startTime INTEGER,
             endTime INTEGER,
-            doctorId INTEGER REFERENCES doctors(id),
+            doctorId INTEGER,
             age INTEGER,
             appointmentNumber INTEGER,
             amountPaid INTEGER,
@@ -137,42 +170,10 @@ export function getDb() {
             createdAt INTEGER NOT NULL
           );
 
-          CREATE TABLE IF NOT EXISTS patients (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            age INTEGER NOT NULL,
-            gender TEXT NOT NULL,
-            phone TEXT NOT NULL,
-            concern TEXT NOT NULL,
-            status TEXT DEFAULT 'waiting' NOT NULL,
-            assignedDoctorId INTEGER REFERENCES doctors(id),
-            deletedAt INTEGER,
-            createdAt INTEGER NOT NULL,
-            updatedAt INTEGER NOT NULL
-          );
-
-          CREATE TABLE IF NOT EXISTS doctors (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            credentials TEXT NOT NULL,
-            specialty TEXT NOT NULL,
-            registrationNumber TEXT NOT NULL,
-            signatureImageUrl TEXT,
-            userId INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-            serviceName TEXT,
-            branch TEXT,
-            image TEXT,
-            fees INTEGER DEFAULT 1200,
-            availability TEXT,
-            status TEXT DEFAULT 'Available' NOT NULL,
-            availableDates TEXT,
-            deletedAt INTEGER
-          );
-
           CREATE TABLE IF NOT EXISTS prescriptions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            patientId INTEGER NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
-            doctorId INTEGER NOT NULL REFERENCES doctors(id) ON DELETE CASCADE,
+            patientId INTEGER NOT NULL,
+            doctorId INTEGER NOT NULL,
             diagnosisNotes TEXT NOT NULL,
             pharmacyBillingAmount INTEGER DEFAULT 0 NOT NULL,
             status TEXT DEFAULT 'draft' NOT NULL,
@@ -182,7 +183,7 @@ export function getDb() {
 
           CREATE TABLE IF NOT EXISTS prescription_medicines (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            prescriptionId INTEGER NOT NULL REFERENCES prescriptions(id) ON DELETE CASCADE,
+            prescriptionId INTEGER NOT NULL,
             medicineName TEXT NOT NULL,
             dosage TEXT NOT NULL,
             frequency TEXT NOT NULL,
@@ -194,7 +195,7 @@ export function getDb() {
 
           CREATE TABLE IF NOT EXISTS prescription_tests (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            prescriptionId INTEGER NOT NULL REFERENCES prescriptions(id) ON DELETE CASCADE,
+            prescriptionId INTEGER NOT NULL,
             testName TEXT NOT NULL,
             notes TEXT,
             status TEXT DEFAULT 'pending' NOT NULL,
@@ -290,6 +291,36 @@ export function getDb() {
             lastSignInAt INTEGER NOT NULL,
             deletedAt INTEGER
           );
+          CREATE TABLE IF NOT EXISTS doctors (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            credentials TEXT NOT NULL,
+            specialty TEXT NOT NULL,
+            registrationNumber TEXT NOT NULL,
+            signatureImageUrl TEXT,
+            userId INTEGER NOT NULL,
+            serviceName TEXT,
+            branch TEXT,
+            image TEXT,
+            fees INTEGER DEFAULT 1200,
+            availability TEXT,
+            status TEXT DEFAULT 'Available' NOT NULL,
+            availableDates TEXT,
+            deletedAt INTEGER
+          );
+          CREATE TABLE IF NOT EXISTS patients (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            age INTEGER NOT NULL,
+            gender TEXT NOT NULL,
+            phone TEXT NOT NULL,
+            concern TEXT NOT NULL,
+            status TEXT DEFAULT 'waiting' NOT NULL,
+            assignedDoctorId INTEGER,
+            deletedAt INTEGER,
+            createdAt INTEGER NOT NULL,
+            updatedAt INTEGER NOT NULL
+          );
           CREATE TABLE IF NOT EXISTS appointments (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
@@ -301,7 +332,7 @@ export function getDb() {
             paymentStatus TEXT DEFAULT 'pending' NOT NULL,
             startTime INTEGER,
             endTime INTEGER,
-            doctorId INTEGER REFERENCES doctors(id),
+            doctorId INTEGER,
             age INTEGER,
             appointmentNumber INTEGER,
             amountPaid INTEGER,
@@ -318,40 +349,10 @@ export function getDb() {
             deletedAt INTEGER,
             createdAt INTEGER NOT NULL
           );
-          CREATE TABLE IF NOT EXISTS patients (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            age INTEGER NOT NULL,
-            gender TEXT NOT NULL,
-            phone TEXT NOT NULL,
-            concern TEXT NOT NULL,
-            status TEXT DEFAULT 'waiting' NOT NULL,
-            assignedDoctorId INTEGER REFERENCES doctors(id),
-            deletedAt INTEGER,
-            createdAt INTEGER NOT NULL,
-            updatedAt INTEGER NOT NULL
-          );
-          CREATE TABLE IF NOT EXISTS doctors (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            credentials TEXT NOT NULL,
-            specialty TEXT NOT NULL,
-            registrationNumber TEXT NOT NULL,
-            signatureImageUrl TEXT,
-            userId INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-            serviceName TEXT,
-            branch TEXT,
-            image TEXT,
-            fees INTEGER DEFAULT 1200,
-            availability TEXT,
-            status TEXT DEFAULT 'Available' NOT NULL,
-            availableDates TEXT,
-            deletedAt INTEGER
-          );
           CREATE TABLE IF NOT EXISTS prescriptions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            patientId INTEGER NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
-            doctorId INTEGER NOT NULL REFERENCES doctors(id) ON DELETE CASCADE,
+            patientId INTEGER NOT NULL,
+            doctorId INTEGER NOT NULL,
             diagnosisNotes TEXT NOT NULL,
             pharmacyBillingAmount INTEGER DEFAULT 0 NOT NULL,
             status TEXT DEFAULT 'draft' NOT NULL,
@@ -360,7 +361,7 @@ export function getDb() {
           );
           CREATE TABLE IF NOT EXISTS prescription_medicines (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            prescriptionId INTEGER NOT NULL REFERENCES prescriptions(id) ON DELETE CASCADE,
+            prescriptionId INTEGER NOT NULL,
             medicineName TEXT NOT NULL,
             dosage TEXT NOT NULL,
             frequency TEXT NOT NULL,
@@ -371,7 +372,7 @@ export function getDb() {
           );
           CREATE TABLE IF NOT EXISTS prescription_tests (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            prescriptionId INTEGER NOT NULL REFERENCES prescriptions(id) ON DELETE CASCADE,
+            prescriptionId INTEGER NOT NULL,
             testName TEXT NOT NULL,
             notes TEXT,
             status TEXT DEFAULT 'pending' NOT NULL,
