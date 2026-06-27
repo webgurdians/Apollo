@@ -22,6 +22,20 @@ try {
   console.log("Database migrations applied successfully.");
 } catch (error) {
   console.error("Failed to run database migrations:", error);
+  try {
+    const fs = await import("fs");
+    const dbPath = path.resolve(process.cwd(), env.databaseUrl || "sqlite.db");
+    if (fs.existsSync(dbPath)) {
+      console.log("Removing corrupted or mismatched database file:", dbPath);
+      fs.unlinkSync(dbPath);
+      // Re-run migrations on fresh database
+      const freshDb = getDb();
+      migrate(freshDb, { migrationsFolder: path.resolve(__dirname, "../db/migrations") });
+      console.log("Fresh database initialized and migrated successfully.");
+    }
+  } catch (retryError) {
+    console.error("Failed to recover database:", retryError);
+  }
 }
 
 // Ensure existing admin user has founder role (one-time fix for DBs seeded before founder role existed)
