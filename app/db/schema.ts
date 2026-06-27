@@ -57,7 +57,10 @@ export const appointments = sqliteTable("appointments", {
   appointmentNumber: integer("appointmentNumber"),
   amountPaid: integer("amountPaid"),
   amountDue: integer("amountDue"),
-});
+}, (table) => [
+  index("appointments_deleted_at_created_at_idx").on(table.deletedAt, table.createdAt),
+  index("appointments_doctor_id_idx").on(table.doctorId),
+]);
 
 export type Appointment = typeof appointments.$inferSelect;
 export type InsertAppointment = typeof appointments.$inferInsert;
@@ -71,7 +74,9 @@ export const contacts = sqliteTable("contacts", {
     .$defaultFn(() => new Date())
     .notNull(),
   deletedAt: integer("deletedAt", { mode: "timestamp" }),
-});
+}, (table) => [
+  index("contacts_deleted_at_created_at_idx").on(table.deletedAt, table.createdAt),
+]);
 
 export type Contact = typeof contacts.$inferSelect;
 export type InsertContact = typeof contacts.$inferInsert;
@@ -165,7 +170,11 @@ export const patients = sqliteTable("patients", {
     .notNull()
     .$onUpdateFn(() => new Date()),
   deletedAt: integer("deletedAt", { mode: "timestamp" }),
-});
+}, (table) => [
+  index("patients_deleted_at_idx").on(table.deletedAt),
+  index("patients_phone_idx").on(table.phone),
+  index("patients_name_idx").on(table.name),
+]);
 
 export type Patient = typeof patients.$inferSelect;
 export type InsertPatient = typeof patients.$inferInsert;
