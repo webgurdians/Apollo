@@ -32,11 +32,17 @@ try {
 
 // Clear dummy patient records (one-time cleanup)
 try {
-  const cleanDb = getDb();
-  cleanDb.prepare(`PRAGMA foreign_keys = OFF`).run();
-  cleanDb.prepare(`DELETE FROM patients`).run();
-  cleanDb.prepare(`PRAGMA foreign_keys = ON`).run();
-  console.log("Cleaned up dummy patient records.");
+  const cleanDb = new Database(env.databaseUrl || "sqlite.db");
+  const alreadyCleaned = cleanDb.prepare(`SELECT value FROM settings WHERE key = 'patients_cleaned'`).get() as { value?: string } | undefined;
+  if (!alreadyCleaned) {
+    cleanDb.prepare(`DELETE FROM patient_reports`).run();
+    cleanDb.prepare(`DELETE FROM bills`).run();
+    cleanDb.prepare(`DELETE FROM appointments`).run();
+    cleanDb.prepare(`DELETE FROM patients`).run();
+    cleanDb.prepare(`INSERT OR IGNORE INTO settings (key, value, updatedAt) VALUES ('patients_cleaned', '1', ?)`).run(Date.now());
+    console.log("Cleaned up dummy patient records.");
+  }
+  cleanDb.close();
 } catch {}
 
 // Auto-seed admin user + doctors on fresh database
