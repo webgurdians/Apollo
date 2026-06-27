@@ -8,7 +8,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
-import { useNavigate } from "react-router";
 import StatsCards from "@/components/dashboard/StatsCards";
 import AppointmentsSection from "@/components/dashboard/AppointmentsSection";
 import PatientQueueSection from "@/components/dashboard/PatientQueueSection";
@@ -79,12 +78,6 @@ export default function Admin() {
           </div>
           <div className="flex items-center gap-4">
             {flags?.global_search !== false && <GlobalSearch />}
-            {user?.role === "founder" && (
-              <Button variant="outline" size="sm" onClick={() => navigate("/dev")}>
-                <Shield className="w-4 h-4 mr-2" />
-                Dev
-              </Button>
-            )}
             <span className="text-sm text-muted-foreground hidden md:inline">
               {user?.username}
             </span>
