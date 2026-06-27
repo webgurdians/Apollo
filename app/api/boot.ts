@@ -9,10 +9,8 @@ import { validateRequestOrigin } from "./lib/origin";
 import { getPrescriptionSecureToken, generatePrescriptionPdf } from "./lib/pdf";
 import { getDb } from "./queries/connection";
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
-import { sql } from "drizzle-orm";
 import path from "path";
 import crypto from "crypto";
-import fs from "fs";
 import Database from "better-sqlite3";
 
 const __dirname = path.resolve(process.cwd(), "api");
@@ -32,23 +30,21 @@ try {
   fixDb.prepare(`UPDATE users SET role = 'founder' WHERE username = 'admin' AND role != 'founder'`).run();
 } catch {}
 
-// Clear dummy patient records (one-time cleanup via Drizzle)
-try {
-  const cleanDb = getDb();
-  const existing = cleanDb.select({ value: sql`value` }).from(sql`settings`).where(sql`key = 'patients_cleaned'`).all();
-  if ((existing as any[]).length === 0) {
-    cleanDb.run(sql`DELETE FROM patient_reports`);
-    cleanDb.run(sql`DELETE FROM bills`);
-    cleanDb.run(sql`DELETE FROM prescriptions`);
-    cleanDb.run(sql`DELETE FROM medicine_orders`);
-    cleanDb.run(sql`DELETE FROM appointments`);
-    cleanDb.run(sql`DELETE FROM patients`);
-    cleanDb.run(sql`INSERT OR IGNORE INTO settings (key, value, updatedAt) VALUES ('patients_cleaned', '1', ${Date.now()})`);
-    console.log("Cleaned up dummy patient records.");
+// HTTP endpoint to manually trigger patient cleanup
+app.get("/__cleanup-patients", async (c) => {
+  try {
+    const db = getDb();
+    db.prepare(`DELETE FROM patient_reports`).run();
+    db.prepare(`DELETE FROM bills`).run();
+    db.prepare(`DELETE FROM prescriptions`).run();
+    db.prepare(`DELETE FROM medicine_orders`).run();
+    db.prepare(`DELETE FROM appointments`).run();
+    db.prepare(`DELETE FROM patients`).run();
+    return c.json({ success: true, message: "All patient records deleted." });
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500);
   }
-} catch (e) {
-  console.error("Patient cleanup failed:", e);
-}
+});
 
 // Auto-seed admin user + doctors on fresh database
 function hashPassword(password: string): string {
