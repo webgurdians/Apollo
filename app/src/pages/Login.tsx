@@ -65,7 +65,7 @@ export default function Login() {
             
             {loginMutation.error && (
               <p className="text-sm text-red-500 font-medium text-center">
-                {loginMutation.error.message}
+                {loginMutation.error.message || "Login failed. Please try again."}
               </p>
             )}
 

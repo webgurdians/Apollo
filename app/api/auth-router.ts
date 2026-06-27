@@ -69,7 +69,6 @@ export const authRouter = createRouter({
           path: opts.path,
           sameSite: opts.sameSite?.toLowerCase() as "lax" | "none",
           secure: opts.secure,
-          maxAge: Session.maxAgeMs / 1000,
         })
       );
 
