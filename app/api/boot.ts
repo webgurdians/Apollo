@@ -72,9 +72,16 @@ try {
       `).run(doc.name, doc.credentials, doc.specialty, doc.reg, userRow.id, doc.serviceName, doc.branch, doc.fees, doc.availability, "Available", now, now);
     }
 
+    seedDb.prepare(`
+      INSERT INTO users (username, passwordHash, name, role, createdAt, updatedAt, lastSignInAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run("frontdesk", hashPassword("front123"), "Front Desk Staff", "front_desk", now, now, now);
+    console.log('Seed: created front_desk user "frontdesk"');
+
     console.log(`Seed: created ${doctors.length} doctor accounts`);
     console.log(`Login: "${seedAdminUser}" / "${seedAdminPass}" (founder)`);
     console.log(`Doctor password: "${pass}" for all doctors`);
+    console.log('Front desk: "frontdesk" / "front123"');
   } else {
     console.log(`Seed: ${row.count} users exist, skipping auto-seed`);
   }
