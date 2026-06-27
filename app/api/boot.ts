@@ -24,6 +24,12 @@ try {
   console.error("Failed to run database migrations:", error);
 }
 
+// Ensure existing admin user has founder role (one-time fix for DBs seeded before founder role existed)
+try {
+  const fixDb = getDb();
+  fixDb.prepare(`UPDATE users SET role = 'founder' WHERE username = 'admin' AND role != 'founder'`).run();
+} catch {}
+
 // Auto-seed admin user + doctors on fresh database
 function hashPassword(password: string): string {
   const salt = crypto.randomBytes(16).toString("hex");
