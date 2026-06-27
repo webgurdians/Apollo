@@ -30,19 +30,6 @@ try {
   fixDb.$client.prepare(`UPDATE users SET role = 'founder' WHERE username = 'admin' AND role != 'founder'`).run();
 } catch {}
 
-// Delete all patient records (idempotent — uses getDb() path resolution + $client raw access)
-try {
-  const cleanDb = getDb();
-  cleanDb.$client.prepare(`DELETE FROM patient_reports`).run();
-  cleanDb.$client.prepare(`DELETE FROM bills`).run();
-  cleanDb.$client.prepare(`DELETE FROM prescriptions`).run();
-  cleanDb.$client.prepare(`DELETE FROM medicine_orders`).run();
-  cleanDb.$client.prepare(`DELETE FROM appointments`).run();
-  cleanDb.$client.prepare(`DELETE FROM patients`).run();
-  console.log("Cleaned up all patient records.");
-} catch (e) {
-  console.error("Patient cleanup failed:", e);
-}
 
 // Auto-seed admin user + doctors on fresh database
 function hashPassword(password: string): string {
