@@ -30,6 +30,15 @@ try {
   fixDb.prepare(`UPDATE users SET role = 'founder' WHERE username = 'admin' AND role != 'founder'`).run();
 } catch {}
 
+// Clear dummy patient records (one-time cleanup)
+try {
+  const cleanDb = getDb();
+  cleanDb.prepare(`PRAGMA foreign_keys = OFF`).run();
+  cleanDb.prepare(`DELETE FROM patients`).run();
+  cleanDb.prepare(`PRAGMA foreign_keys = ON`).run();
+  console.log("Cleaned up dummy patient records.");
+} catch {}
+
 // Auto-seed admin user + doctors on fresh database
 function hashPassword(password: string): string {
   const salt = crypto.randomBytes(16).toString("hex");
