@@ -40,7 +40,6 @@ export default function ReportDispatchSection() {
   const { data: doctors } = trpc.patients.listDoctors.useQuery();
   const { data: patients } = trpc.patients.list.useQuery();
   const { data: reports } = trpc.reports.list.useQuery();
-  const getUploadUrl = trpc.reports.getUploadUrl.useMutation();
   const createReport = trpc.reports.create.useMutation();
   const updateStatus = trpc.reports.updateStatus.useMutation({
     onSuccess: () => utils.reports.list.invalidate(),
@@ -82,32 +81,40 @@ export default function ReportDispatchSection() {
     if (!selectedPatientId || !selectedDoctorId || !reportType || !file) return;
     setUploading(true);
     try {
-      const { uploadUrl, fileUrl } = await getUploadUrl.mutateAsync({
-        fileName: file.name,
-        fileType: file.type,
-        patientId: selectedPatientId,
-      });
-      await fetch(uploadUrl, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
-      await createReport.mutateAsync({
-        patientId: selectedPatientId,
-        doctorId: parseInt(selectedDoctorId),
-        reportType,
-        fileUrl,
-        fileName: file.name,
-        fileType: file.type.startsWith("image/") ? "image" : "pdf",
-        notes: notes || undefined,
-      });
-      utils.reports.list.invalidate();
-      setSelectedPatientId(null);
-      setSelectedDoctorId("");
-      setReportType("");
-      setNotes("");
-      setFile(null);
-      setPreviewUrl(null);
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        try {
+          const base64Url = reader.result as string;
+          await createReport.mutateAsync({
+            patientId: selectedPatientId,
+            doctorId: parseInt(selectedDoctorId),
+            reportType,
+            fileUrl: base64Url,
+            fileName: file.name,
+            fileType: file.type.startsWith("image/") ? "image" : "pdf",
+            notes: notes || undefined,
+          });
+          utils.reports.list.invalidate();
+          setSelectedPatientId(null);
+          setSelectedDoctorId("");
+          setReportType("");
+          setNotes("");
+          setFile(null);
+          setPreviewUrl(null);
+          setUploading(false);
+        } catch (err: any) {
+          console.error("Upload failed", err);
+          setUploading(false);
+        }
+      };
+      reader.onerror = () => {
+        setUploading(false);
+      };
+      reader.readAsDataURL(file);
     } catch (err) {
       console.error("Upload failed", err);
+      setUploading(false);
     }
-    setUploading(false);
   };
 
   const handleSendWhatsApp = (report: NonNullable<typeof reports>[number]) => {

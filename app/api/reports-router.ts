@@ -42,7 +42,7 @@ export const reportsRouter = createRouter({
       patientId: z.number(),
       doctorId: z.number(),
       reportType: z.string().min(1),
-      fileUrl: z.string().url(),
+      fileUrl: z.string(),
       fileName: z.string().min(1),
       fileType: z.string().min(1),
       notes: z.string().optional(),
