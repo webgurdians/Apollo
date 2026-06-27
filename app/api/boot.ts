@@ -7,7 +7,7 @@ import { createContext } from "./context";
 import { env } from "./lib/env";
 import { validateRequestOrigin } from "./lib/origin";
 import { getPrescriptionSecureToken, generatePrescriptionPdf } from "./lib/pdf";
-import { getDb } from "./queries/connection";
+import { getDb, resetDbConnection } from "./queries/connection";
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 import path from "path";
 import crypto from "crypto";
@@ -28,10 +28,14 @@ try {
     if (fs.existsSync(dbPath)) {
       console.log("Removing corrupted or mismatched database file:", dbPath);
       fs.unlinkSync(dbPath);
+      // Reset connection instance cache
+      resetDbConnection();
       // Re-run migrations on fresh database
       const freshDb = getDb();
       migrate(freshDb, { migrationsFolder: path.resolve(__dirname, "../db/migrations") });
       console.log("Fresh database initialized and migrated successfully.");
+      // Seed the fresh database
+      runSeeding();
     }
   } catch (retryError) {
     console.error("Failed to recover database:", retryError);
@@ -52,9 +56,10 @@ function hashPassword(password: string): string {
   return `${salt}:${hash}`;
 }
 
-try {
-  const seedDb = new Database(env.databaseUrl || "sqlite.db");
-  const row = seedDb.prepare("SELECT COUNT(*) as count FROM users").get() as { count: number };
+export function runSeeding() {
+  try {
+    const seedDb = new Database(env.databaseUrl || "sqlite.db");
+    const row = seedDb.prepare("SELECT COUNT(*) as count FROM users").get() as { count: number };
   if (row.count === 0) {
     const now = Date.now();
 
@@ -162,10 +167,14 @@ try {
 
     console.log(`Seed: ${row.count} users exist, skipping auto-seed`);
   }
-  seedDb.close();
-} catch (error) {
-  console.error("Auto-seed error:", error);
+    seedDb.close();
+  } catch (error) {
+    console.error("Auto-seed error:", error);
+  }
 }
+
+// Run seeding on boot
+runSeeding();
 import {
   prescriptions,
   patients,

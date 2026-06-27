@@ -185,3 +185,7 @@ export function getDb() {
   }
   return instance;
 }
+
+export function resetDbConnection() {
+  instance = undefined as any;
+}
