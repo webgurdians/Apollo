@@ -77,7 +77,7 @@ export function getDb() {
       
       // Auto-migrate tables (only for non-memory databases)
       if (dbPath !== ":memory:") {
-        sqlite.exec(`
+      sqlite.exec(`
           CREATE TABLE IF NOT EXISTS medicine_orders (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             patientId INTEGER NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
@@ -88,6 +88,136 @@ export function getDb() {
             createdAt INTEGER NOT NULL,
             updatedAt INTEGER NOT NULL,
             deletedAt INTEGER
+          );
+        `);
+
+        // Nuclear fallback: ensure ALL core tables exist regardless of migration status
+        sqlite.exec(`
+          CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL UNIQUE,
+            passwordHash TEXT NOT NULL,
+            name TEXT,
+            email TEXT,
+            avatar TEXT,
+            role TEXT DEFAULT 'user' NOT NULL,
+            createdAt INTEGER NOT NULL,
+            updatedAt INTEGER NOT NULL,
+            lastSignInAt INTEGER NOT NULL,
+            deletedAt INTEGER
+          );
+
+          CREATE TABLE IF NOT EXISTS appointments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            phone TEXT NOT NULL,
+            service TEXT NOT NULL,
+            preferredDate INTEGER NOT NULL,
+            message TEXT,
+            status TEXT DEFAULT 'pending' NOT NULL,
+            paymentStatus TEXT DEFAULT 'pending' NOT NULL,
+            startTime INTEGER,
+            endTime INTEGER,
+            doctorId INTEGER REFERENCES doctors(id),
+            age INTEGER,
+            appointmentNumber INTEGER,
+            amountPaid INTEGER,
+            amountDue INTEGER,
+            deletedAt INTEGER,
+            createdAt INTEGER NOT NULL,
+            updatedAt INTEGER NOT NULL
+          );
+
+          CREATE TABLE IF NOT EXISTS contacts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            phone TEXT NOT NULL,
+            message TEXT NOT NULL,
+            deletedAt INTEGER,
+            createdAt INTEGER NOT NULL
+          );
+
+          CREATE TABLE IF NOT EXISTS patients (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            age INTEGER NOT NULL,
+            gender TEXT NOT NULL,
+            phone TEXT NOT NULL,
+            concern TEXT NOT NULL,
+            status TEXT DEFAULT 'waiting' NOT NULL,
+            assignedDoctorId INTEGER REFERENCES doctors(id),
+            deletedAt INTEGER,
+            createdAt INTEGER NOT NULL,
+            updatedAt INTEGER NOT NULL
+          );
+
+          CREATE TABLE IF NOT EXISTS doctors (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            credentials TEXT NOT NULL,
+            specialty TEXT NOT NULL,
+            registrationNumber TEXT NOT NULL,
+            signatureImageUrl TEXT,
+            userId INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            serviceName TEXT,
+            branch TEXT,
+            image TEXT,
+            fees INTEGER DEFAULT 1200,
+            availability TEXT,
+            status TEXT DEFAULT 'Available' NOT NULL,
+            availableDates TEXT,
+            deletedAt INTEGER
+          );
+
+          CREATE TABLE IF NOT EXISTS prescriptions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            patientId INTEGER NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
+            doctorId INTEGER NOT NULL REFERENCES doctors(id) ON DELETE CASCADE,
+            diagnosisNotes TEXT NOT NULL,
+            pharmacyBillingAmount INTEGER DEFAULT 0 NOT NULL,
+            status TEXT DEFAULT 'draft' NOT NULL,
+            deletedAt INTEGER,
+            createdAt INTEGER NOT NULL
+          );
+
+          CREATE TABLE IF NOT EXISTS prescription_medicines (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            prescriptionId INTEGER NOT NULL REFERENCES prescriptions(id) ON DELETE CASCADE,
+            medicineName TEXT NOT NULL,
+            dosage TEXT NOT NULL,
+            frequency TEXT NOT NULL,
+            duration TEXT NOT NULL,
+            instructions TEXT,
+            status TEXT DEFAULT 'pending' NOT NULL,
+            deletedAt INTEGER
+          );
+
+          CREATE TABLE IF NOT EXISTS prescription_tests (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            prescriptionId INTEGER NOT NULL REFERENCES prescriptions(id) ON DELETE CASCADE,
+            testName TEXT NOT NULL,
+            notes TEXT,
+            status TEXT DEFAULT 'pending' NOT NULL,
+            deletedAt INTEGER
+          );
+
+          CREATE TABLE IF NOT EXISTS settings (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            key TEXT NOT NULL UNIQUE,
+            value TEXT NOT NULL,
+            updatedAt INTEGER NOT NULL
+          );
+
+          CREATE TABLE IF NOT EXISTS activity_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            userId INTEGER NOT NULL,
+            userName TEXT NOT NULL,
+            userRole TEXT NOT NULL,
+            action TEXT NOT NULL,
+            entity TEXT NOT NULL,
+            entityId INTEGER,
+            details TEXT,
+            createdAt INTEGER NOT NULL
           );
         `);
 
@@ -144,6 +274,125 @@ export function getDb() {
             createdAt INTEGER NOT NULL,
             updatedAt INTEGER NOT NULL,
             deletedAt INTEGER
+          );
+        `);
+        sqlite.exec(`
+          CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL UNIQUE,
+            passwordHash TEXT NOT NULL,
+            name TEXT,
+            email TEXT,
+            avatar TEXT,
+            role TEXT DEFAULT 'user' NOT NULL,
+            createdAt INTEGER NOT NULL,
+            updatedAt INTEGER NOT NULL,
+            lastSignInAt INTEGER NOT NULL,
+            deletedAt INTEGER
+          );
+          CREATE TABLE IF NOT EXISTS appointments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            phone TEXT NOT NULL,
+            service TEXT NOT NULL,
+            preferredDate INTEGER NOT NULL,
+            message TEXT,
+            status TEXT DEFAULT 'pending' NOT NULL,
+            paymentStatus TEXT DEFAULT 'pending' NOT NULL,
+            startTime INTEGER,
+            endTime INTEGER,
+            doctorId INTEGER REFERENCES doctors(id),
+            age INTEGER,
+            appointmentNumber INTEGER,
+            amountPaid INTEGER,
+            amountDue INTEGER,
+            deletedAt INTEGER,
+            createdAt INTEGER NOT NULL,
+            updatedAt INTEGER NOT NULL
+          );
+          CREATE TABLE IF NOT EXISTS contacts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            phone TEXT NOT NULL,
+            message TEXT NOT NULL,
+            deletedAt INTEGER,
+            createdAt INTEGER NOT NULL
+          );
+          CREATE TABLE IF NOT EXISTS patients (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            age INTEGER NOT NULL,
+            gender TEXT NOT NULL,
+            phone TEXT NOT NULL,
+            concern TEXT NOT NULL,
+            status TEXT DEFAULT 'waiting' NOT NULL,
+            assignedDoctorId INTEGER REFERENCES doctors(id),
+            deletedAt INTEGER,
+            createdAt INTEGER NOT NULL,
+            updatedAt INTEGER NOT NULL
+          );
+          CREATE TABLE IF NOT EXISTS doctors (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            credentials TEXT NOT NULL,
+            specialty TEXT NOT NULL,
+            registrationNumber TEXT NOT NULL,
+            signatureImageUrl TEXT,
+            userId INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            serviceName TEXT,
+            branch TEXT,
+            image TEXT,
+            fees INTEGER DEFAULT 1200,
+            availability TEXT,
+            status TEXT DEFAULT 'Available' NOT NULL,
+            availableDates TEXT,
+            deletedAt INTEGER
+          );
+          CREATE TABLE IF NOT EXISTS prescriptions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            patientId INTEGER NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
+            doctorId INTEGER NOT NULL REFERENCES doctors(id) ON DELETE CASCADE,
+            diagnosisNotes TEXT NOT NULL,
+            pharmacyBillingAmount INTEGER DEFAULT 0 NOT NULL,
+            status TEXT DEFAULT 'draft' NOT NULL,
+            deletedAt INTEGER,
+            createdAt INTEGER NOT NULL
+          );
+          CREATE TABLE IF NOT EXISTS prescription_medicines (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            prescriptionId INTEGER NOT NULL REFERENCES prescriptions(id) ON DELETE CASCADE,
+            medicineName TEXT NOT NULL,
+            dosage TEXT NOT NULL,
+            frequency TEXT NOT NULL,
+            duration TEXT NOT NULL,
+            instructions TEXT,
+            status TEXT DEFAULT 'pending' NOT NULL,
+            deletedAt INTEGER
+          );
+          CREATE TABLE IF NOT EXISTS prescription_tests (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            prescriptionId INTEGER NOT NULL REFERENCES prescriptions(id) ON DELETE CASCADE,
+            testName TEXT NOT NULL,
+            notes TEXT,
+            status TEXT DEFAULT 'pending' NOT NULL,
+            deletedAt INTEGER
+          );
+          CREATE TABLE IF NOT EXISTS settings (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            key TEXT NOT NULL UNIQUE,
+            value TEXT NOT NULL,
+            updatedAt INTEGER NOT NULL
+          );
+          CREATE TABLE IF NOT EXISTS activity_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            userId INTEGER NOT NULL,
+            userName TEXT NOT NULL,
+            userRole TEXT NOT NULL,
+            action TEXT NOT NULL,
+            entity TEXT NOT NULL,
+            entityId INTEGER,
+            details TEXT,
+            createdAt INTEGER NOT NULL
           );
         `);
         const fallbackBillsTableExists = sqlite.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='bills';").get();
