@@ -32,7 +32,6 @@ interface Tab {
 
 export default function Admin() {
   const { user, logout } = useAuth();
-  const navigate = useNavigate();
   const { data: flags } = trpc.features.list.useQuery();
   const { data: stats, isLoading: statsLoading } = trpc.appointment.stats.useQuery(undefined, {
     refetchInterval: 5000,

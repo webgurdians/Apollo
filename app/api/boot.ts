@@ -48,14 +48,14 @@ try {
 
     const pass = "apollo123";
     const doctors = [
-      { username: "drvigneshthanik", name: "Dr. Vignesh Thanikgaivasan", specialty: "Cardiology", credentials: "MBBS, MD (Gen Med), DM (Cardiology) AFAPSIC, FIMSA", reg: "REG-001", serviceName: "Dr. Vignesh Thanikgaivasan - Cardiology", branch: "Apollo Hospitals Greams Road, Chennai", fees: 1200, availability: "Monday & Saturday (11:00 AM – 3:00 PM)" },
-      { username: "drnithyanarayan", name: "Dr. Nithya Narayanan", specialty: "ENT / Covid Consult", credentials: "MBBS, DLO, DNB (ENT), MNAMS", reg: "REG-002", serviceName: "Dr. Nithya Narayanan - ENT / Covid Consult", branch: "Apollo Hospitals Greams Road, Chennai", fees: 1200, availability: "Tuesday (10:00 AM – 2:00 PM)" },
-      { username: "dranushad", name: "Dr. Anusha D", specialty: "Consultant Neurologist", credentials: "MBBS, MD, DM", reg: "REG-003", serviceName: "Dr. Anusha D - Consultant Neurologist", branch: "Apollo Hospitals OMR, Chennai", fees: 1200, availability: "Wednesday (9:00 AM – 1:00 PM)" },
-      { username: "drjothiparthasa", name: "Dr. Jothi Parthasarathy S", specialty: "Neonatology / Pediatrics", credentials: "MBBS, MD (Paediatrics)", reg: "REG-004", serviceName: "Dr. Jothi Parthasarathy S - Neonatology", branch: "Apollo Children Hospitals Greams Road, Chennai", fees: 1200, availability: "Thursday (10:00 AM – 2:00 PM)" },
-      { username: "drgauthamkrishna", name: "Dr. Gautham Krishnamurthy", specialty: "Surgical Gastroenterology & GI Oncology", credentials: "MBBS, MS (Gen Surg), MCh (Surgical Gastroenterology)", reg: "REG-005", serviceName: "Dr. Gautham Krishnamurthy - Surgical Gastroenterology & GI Oncology", branch: "Apollo Hospitals Greams Road, Chennai", fees: 1200, availability: "Friday (11:00 AM – 3:00 PM)" },
-      { username: "drjatinsoni", name: "Dr. Jatin Soni", specialty: "Urology", credentials: "MBBS, MS (General Surgery), MCh (Urology)", reg: "REG-006", serviceName: "Dr. Jatin Soni - Urology", branch: "Apollo Hospitals Chennai", fees: 1200, availability: "Saturday (9:30 AM – 2:30 PM)" },
-      { username: "drvishnuabishek", name: "Dr. Vishnu Abishek Raju", specialty: "Gastroenterology / GI Medicine", credentials: "MBBS, MD (Internal Medicine), DM (Gastroenterology)", reg: "REG-007", serviceName: "Dr. Vishnu Abishek Raju - Gastroenterology", branch: "Apollo Hospitals Greams Road, Chennai", fees: 1200, availability: "Friday (11:00 AM – 3:00 PM)" },
-      { username: "drrakeshshetty", name: "Dr. Rakesh Shetty", specialty: "Orthopedics-Sports Medicine", credentials: "MBBS, DNB (Orthopaedic) Certified in spine and joint Replacement Surgeon (Languages: English, Telugu, Tamil, Kannada, Bengali, Tulu, Marathi, Hindi)", reg: "REG-008", serviceName: "Dr. Rakesh Shetty - Orthopedics-Sports Medicine", branch: "Apollo Hospitals Chennai", fees: 1200, availability: "Monday & Wednesday (2:00 PM – 5:00 PM)" },
+      { username: "drvigneshthanik", name: "Dr. Vignesh Thanikgaivasan", img: "/images/vignesh.jpg", specialty: "Cardiology", credentials: "MBBS, MD (Gen Med), DM (Cardiology) AFAPSIC, FIMSA", reg: "REG-001", serviceName: "Dr. Vignesh Thanikgaivasan - Cardiology", branch: "Apollo Hospitals Greams Road, Chennai", fees: 1200, availability: "Monday & Saturday (11:00 AM – 3:00 PM)" },
+      { username: "drnithyanarayan", name: "Dr. Nithya Narayanan", img: "/images/nithya.jpg", specialty: "ENT / Covid Consult", credentials: "MBBS, DLO, DNB (ENT), MNAMS", reg: "REG-002", serviceName: "Dr. Nithya Narayanan - ENT / Covid Consult", branch: "Apollo Hospitals Greams Road, Chennai", fees: 1200, availability: "Tuesday (10:00 AM – 2:00 PM)" },
+      { username: "dranushad", name: "Dr. Anusha D", img: "/images/anusha.jpg", specialty: "Consultant Neurologist", credentials: "MBBS, MD, DM", reg: "REG-003", serviceName: "Dr. Anusha D - Consultant Neurologist", branch: "Apollo Hospitals OMR, Chennai", fees: 1200, availability: "Wednesday (9:00 AM – 1:00 PM)" },
+      { username: "drjothiparthasa", name: "Dr. Jothi Parthasarathy S", img: "/images/jothi.jpg", specialty: "Neonatology / Pediatrics", credentials: "MBBS, MD (Paediatrics)", reg: "REG-004", serviceName: "Dr. Jothi Parthasarathy S - Neonatology", branch: "Apollo Children Hospitals Greams Road, Chennai", fees: 1200, availability: "Thursday (10:00 AM – 2:00 PM)" },
+      { username: "drgauthamkrishna", name: "Dr. Gautham Krishnamurthy", img: "/images/gautham.jpg", specialty: "Surgical Gastroenterology & GI Oncology", credentials: "MBBS, MS (Gen Surg), MCh (Surgical Gastroenterology)", reg: "REG-005", serviceName: "Dr. Gautham Krishnamurthy - Surgical Gastroenterology & GI Oncology", branch: "Apollo Hospitals Greams Road, Chennai", fees: 1200, availability: "Friday (11:00 AM – 3:00 PM)" },
+      { username: "drjatinsoni", name: "Dr. Jatin Soni", img: "/images/jatin.jpg", specialty: "Urology", credentials: "MBBS, MS (General Surgery), MCh (Urology)", reg: "REG-006", serviceName: "Dr. Jatin Soni - Urology", branch: "Apollo Hospitals Chennai", fees: 1200, availability: "Saturday (9:30 AM – 2:30 PM)" },
+      { username: "drvishnuabishek", name: "Dr. Vishnu Abishek Raju", img: "/images/vishnu.jpg", specialty: "Gastroenterology / GI Medicine", credentials: "MBBS, MD (Internal Medicine), DM (Gastroenterology)", reg: "REG-007", serviceName: "Dr. Vishnu Abishek Raju - Gastroenterology", branch: "Apollo Hospitals Greams Road, Chennai", fees: 1200, availability: "Friday (11:00 AM – 3:00 PM)" },
+      { username: "drrakeshshetty", name: "Dr. Rakesh Shetty", img: "/images/rakesh.jpg", specialty: "Orthopedics-Sports Medicine", credentials: "MBBS, DNB (Orthopaedic) Certified in spine and joint Replacement Surgeon (Languages: English, Telugu, Tamil, Kannada, Bengali, Tulu, Marathi, Hindi)", reg: "REG-008", serviceName: "Dr. Rakesh Shetty - Orthopedics-Sports Medicine", branch: "Apollo Hospitals Chennai", fees: 1200, availability: "Monday & Wednesday (2:00 PM – 5:00 PM)" },
     ];
 
     for (const doc of doctors) {
@@ -67,9 +67,9 @@ try {
       const userRow = seedDb.prepare("SELECT id FROM users WHERE username = ?").get(doc.username) as { id: number };
 
       seedDb.prepare(`
-        INSERT INTO doctors (name, credentials, specialty, registrationNumber, userId, serviceName, branch, fees, availability, status, createdAt, updatedAt)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(doc.name, doc.credentials, doc.specialty, doc.reg, userRow.id, doc.serviceName, doc.branch, doc.fees, doc.availability, "Available", now, now);
+        INSERT INTO doctors (name, credentials, specialty, registrationNumber, userId, serviceName, branch, image, fees, availability, status, createdAt, updatedAt)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(doc.name, doc.credentials, doc.specialty, doc.reg, userRow.id, doc.serviceName, doc.branch, doc.img, doc.fees, doc.availability, "Available", now, now);
     }
 
     seedDb.prepare(`
