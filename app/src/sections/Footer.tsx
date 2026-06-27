@@ -74,12 +74,9 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="border-t border-white/10 pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="border-t border-white/10 pt-6 text-center">
           <p className="text-sm text-white/50">
             {t("footer.copyright", { year: new Date().getFullYear() })}
-          </p>
-          <p className="text-sm text-white/50 flex items-center gap-1">
-            {t("footer.madeWith", { heart: "♥" })}
           </p>
         </div>
       </div>

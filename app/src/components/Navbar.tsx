@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, useLocation } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Menu, X, Phone, MessageCircle, Calendar } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -10,6 +10,8 @@ const PHONE_NUMBER = "+917699933383";
 export default function Navbar() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
+  const isBookPage = location.pathname === "/book-appointment";
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -66,14 +68,16 @@ export default function Navbar() {
 
           {/* Desktop CTAs */}
           <div className="hidden md:flex items-center gap-3">
-            <Button
-              size="sm"
-              className="gap-2 bg-apollo-blue hover:bg-apollo-dark text-white"
-              onClick={() => navigate("/book-appointment")}
-            >
-              <Calendar className="w-4 h-4" />
-              Book Now
-            </Button>
+            {!isBookPage && (
+              <Button
+                size="sm"
+                className="gap-2 bg-apollo-blue hover:bg-apollo-dark text-white"
+                onClick={() => navigate("/book-appointment")}
+              >
+                <Calendar className="w-4 h-4" />
+                Book Now
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"
@@ -129,16 +133,18 @@ export default function Navbar() {
               </button>
             ))}
             <div className="flex gap-3 pt-3 border-t">
-              <Button
-                className="flex-1 gap-2 bg-apollo-blue hover:bg-apollo-dark text-white"
-                onClick={() => {
-                  setIsMobileMenuOpen(false);
-                  navigate("/book-appointment");
-                }}
-              >
-                <Calendar className="w-4 h-4" />
-                Book Now
-              </Button>
+              {!isBookPage && (
+                <Button
+                  className="flex-1 gap-2 bg-apollo-blue hover:bg-apollo-dark text-white"
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    navigate("/book-appointment");
+                  }}
+                >
+                  <Calendar className="w-4 h-4" />
+                  Book Now
+                </Button>
+              )}
               <Button
                 variant="outline"
                 className="flex-1 gap-2 border-apollo-blue text-apollo-blue"

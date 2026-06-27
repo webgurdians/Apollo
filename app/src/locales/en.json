@@ -163,8 +163,7 @@
     "quickLinks": "Quick Links",
     "contactUs": "Contact Us",
     "whatsappUs": "WhatsApp Us",
-    "copyright": "© {{year}} Apollo Information Centre Aranghata. Built by Patrika Media (Neel).",
-    "madeWith": "Made with {{heart}} for the community"
+    "copyright": "© {{year}} Apollo Information Centre Aranghata"
   },
   "floatingWhatsApp": {
     "ariaLabel": "Chat on WhatsApp"
