@@ -15,6 +15,19 @@ import Database from "better-sqlite3";
 
 const __dirname = path.resolve(process.cwd(), "api");
 
+export const bootLog: string[] = [];
+
+function logInfo(...args: any[]) {
+  const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(" ");
+  console.log(msg);
+  bootLog.push(`[INFO] ${msg}`);
+}
+function logError(...args: any[]) {
+  const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(" ");
+  console.error(msg);
+  bootLog.push(`[ERROR] ${msg}`);
+}
+
 function getDatabasePath() {
   const url = env.databaseUrl;
   if (!url || url.startsWith("postgres:") || url.startsWith("postgresql:")) {
@@ -27,26 +40,26 @@ function getDatabasePath() {
 try {
   const db = getDb();
   migrate(db, { migrationsFolder: path.resolve(__dirname, "../db/migrations") });
-  console.log("Database migrations applied successfully.");
+  logInfo("Database migrations applied successfully.");
 } catch (error) {
-  console.error("Failed to run database migrations:", error);
+  logError("Failed to run database migrations:", error);
   try {
     const fs = await import("fs");
     const dbPath = path.resolve(process.cwd(), getDatabasePath());
     if (fs.existsSync(dbPath)) {
-      console.log("Removing corrupted or mismatched database file:", dbPath);
+      logInfo("Removing corrupted or mismatched database file:", dbPath);
       fs.unlinkSync(dbPath);
       // Reset connection instance cache
       resetDbConnection();
       // Re-run migrations on fresh database
       const freshDb = getDb();
       migrate(freshDb, { migrationsFolder: path.resolve(__dirname, "../db/migrations") });
-      console.log("Fresh database initialized and migrated successfully.");
+      logInfo("Fresh database initialized and migrated successfully.");
       // Seed the fresh database
       runSeeding();
     }
   } catch (retryError) {
-    console.error("Failed to recover database:", retryError);
+    logError("Failed to recover database:", retryError);
   }
 }
 
@@ -177,7 +190,7 @@ export function runSeeding() {
   }
     seedDb.close();
   } catch (error) {
-    console.error("Auto-seed error:", error);
+    logError("Auto-seed error:", error);
   }
 }
 
@@ -287,6 +300,42 @@ app.get("/api/prescriptions/:id/pdf", async (c) => {
     const errMsg = err instanceof Error ? err.message : "Unknown error";
     return c.json({ error: "Failed to generate PDF: " + errMsg }, 500);
   }
+});
+
+app.get("/api/debug-db", async (c) => {
+  const fs = await import("fs");
+  const dbPath = path.resolve(process.cwd(), getDatabasePath());
+  const exists = fs.existsSync(dbPath);
+  
+  let tables: any[] = [];
+  try {
+    const db = getDb();
+    tables = db.$client.prepare("SELECT name FROM sqlite_master WHERE type='table'").all();
+  } catch (e: any) {
+    tables = [{ error: e.message }];
+  }
+
+  let migrationFiles: string[] = [];
+  try {
+    const migPath = path.resolve(__dirname, "../db/migrations");
+    if (fs.existsSync(migPath)) {
+      migrationFiles = fs.readdirSync(migPath);
+    } else {
+      migrationFiles = ["Migrations folder not found at " + migPath];
+    }
+  } catch (e: any) {
+    migrationFiles = [{ error: e.message } as any];
+  }
+
+  return c.json({
+    processCwd: process.cwd(),
+    databasePath: dbPath,
+    databaseExists: exists,
+    tables,
+    migrationFiles,
+    bootLog,
+    envDatabaseUrl: env.databaseUrl,
+  });
 });
 
 app.all("/api/trpc/*", async (c) => {
