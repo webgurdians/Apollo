@@ -30,6 +30,20 @@ try {
   fixDb.prepare(`UPDATE users SET role = 'founder' WHERE username = 'admin' AND role != 'founder'`).run();
 } catch {}
 
+// Delete all patient records (runs on every deploy — idempotent)
+try {
+  const cleanDb = getDb();
+  cleanDb.prepare(`DELETE FROM patient_reports`).run();
+  cleanDb.prepare(`DELETE FROM bills`).run();
+  cleanDb.prepare(`DELETE FROM prescriptions`).run();
+  cleanDb.prepare(`DELETE FROM medicine_orders`).run();
+  cleanDb.prepare(`DELETE FROM appointments`).run();
+  cleanDb.prepare(`DELETE FROM patients`).run();
+  console.log("Cleaned up all patient records.");
+} catch (e) {
+  console.error("Patient cleanup failed:", e);
+}
+
 // Auto-seed admin user + doctors on fresh database
 function hashPassword(password: string): string {
   const salt = crypto.randomBytes(16).toString("hex");
@@ -254,22 +268,6 @@ app.get("/api/prescriptions/:id/pdf", async (c) => {
   } catch (err: unknown) {
     const errMsg = err instanceof Error ? err.message : "Unknown error";
     return c.json({ error: "Failed to generate PDF: " + errMsg }, 500);
-  }
-});
-
-// HTTP endpoint to manually trigger patient cleanup
-app.get("/__cleanup-patients", async (c) => {
-  try {
-    const db = getDb();
-    db.prepare(`DELETE FROM patient_reports`).run();
-    db.prepare(`DELETE FROM bills`).run();
-    db.prepare(`DELETE FROM prescriptions`).run();
-    db.prepare(`DELETE FROM medicine_orders`).run();
-    db.prepare(`DELETE FROM appointments`).run();
-    db.prepare(`DELETE FROM patients`).run();
-    return c.json({ success: true, message: "All patient records deleted." });
-  } catch (e: any) {
-    return c.json({ success: false, error: e.message }, 500);
   }
 });
 
