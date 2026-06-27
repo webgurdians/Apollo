@@ -26,21 +26,19 @@ try {
 
 // Ensure existing admin user has founder role (one-time fix for DBs seeded before founder role existed)
 try {
-  const fixDb = new Database(env.databaseUrl || "sqlite.db");
-  fixDb.prepare(`UPDATE users SET role = 'founder' WHERE username = 'admin' AND role != 'founder'`).run();
-  fixDb.close();
+  const fixDb = getDb();
+  fixDb.$client.prepare(`UPDATE users SET role = 'founder' WHERE username = 'admin' AND role != 'founder'`).run();
 } catch {}
 
-// Delete all patient records (idempotent — uses same raw Database as auto-seed)
+// Delete all patient records (idempotent — uses getDb() path resolution + $client raw access)
 try {
-  const cleanDb = new Database(env.databaseUrl || "sqlite.db");
-  cleanDb.prepare(`DELETE FROM patient_reports`).run();
-  cleanDb.prepare(`DELETE FROM bills`).run();
-  cleanDb.prepare(`DELETE FROM prescriptions`).run();
-  cleanDb.prepare(`DELETE FROM medicine_orders`).run();
-  cleanDb.prepare(`DELETE FROM appointments`).run();
-  cleanDb.prepare(`DELETE FROM patients`).run();
-  cleanDb.close();
+  const cleanDb = getDb();
+  cleanDb.$client.prepare(`DELETE FROM patient_reports`).run();
+  cleanDb.$client.prepare(`DELETE FROM bills`).run();
+  cleanDb.$client.prepare(`DELETE FROM prescriptions`).run();
+  cleanDb.$client.prepare(`DELETE FROM medicine_orders`).run();
+  cleanDb.$client.prepare(`DELETE FROM appointments`).run();
+  cleanDb.$client.prepare(`DELETE FROM patients`).run();
   console.log("Cleaned up all patient records.");
 } catch (e) {
   console.error("Patient cleanup failed:", e);
