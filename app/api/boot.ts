@@ -79,10 +79,50 @@ try {
     console.log('Seed: created front_desk user "frontdesk"');
 
     console.log(`Seed: created ${doctors.length} doctor accounts`);
+
+    seedDb.prepare(`
+      INSERT INTO settings (key, value, updatedAt)
+      VALUES (?, ?, ?)
+      ON CONFLICT(key) DO NOTHING
+    `).run("features", JSON.stringify({
+      appointments: true,
+      patients: true,
+      billing: true,
+      medicine_orders: true,
+      contacts: true,
+      staff: true,
+      doctors: true,
+      end_of_day_report: true,
+      featured_doctor: true,
+      report_dispatch: false,
+      global_search: true,
+    }), now);
+
+    console.log(`Seed: created default feature flags`);
     console.log(`Login: "${seedAdminUser}" / "${seedAdminPass}" (founder)`);
     console.log(`Doctor password: "${pass}" for all doctors`);
     console.log('Front desk: "frontdesk" / "front123"');
   } else {
+    const existingFlags = seedDb.prepare("SELECT value FROM settings WHERE key = 'features'").get() as { value?: string } | undefined;
+    if (!existingFlags) {
+      seedDb.prepare(`
+        INSERT INTO settings (key, value, updatedAt)
+        VALUES (?, ?, ?)
+      `).run("features", JSON.stringify({
+        appointments: true,
+        patients: true,
+        billing: true,
+        medicine_orders: true,
+        contacts: true,
+        staff: true,
+        doctors: true,
+        end_of_day_report: true,
+        featured_doctor: true,
+        report_dispatch: false,
+        global_search: true,
+      }), Date.now());
+      console.log("Seed: created default feature flags (existing users, no flags)");
+    }
     console.log(`Seed: ${row.count} users exist, skipping auto-seed`);
   }
   seedDb.close();

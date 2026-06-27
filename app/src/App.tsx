@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router'
 import { useAuth } from './hooks/useAuth'
 import Home from './pages/Home'
 import Admin from './pages/Admin'
+import Dev from './pages/Dev'
 import FrontDesk from './pages/FrontDesk'
 import Login from './pages/Login'
 import Doctor from './pages/Doctor'
@@ -14,6 +15,7 @@ import { Loader2 } from 'lucide-react'
 
 const ALLOWED_ROLES: Record<string, string[]> = {
   "/admin": ["founder", "admin", "staff", "user"],
+  "/dev": ["founder"],
   "/front-desk": ["front_desk", "founder", "admin"],
   "/doctor": ["doctor", "admin"],
   "/pharmacy": ["pharmacy"],
@@ -49,6 +51,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/admin" element={<ProtectedRoute path="/admin"><Admin /></ProtectedRoute>} />
+        <Route path="/dev" element={<ProtectedRoute path="/dev"><Dev /></ProtectedRoute>} />
         <Route path="/front-desk" element={<ProtectedRoute path="/front-desk"><FrontDesk /></ProtectedRoute>} />
         <Route path="/login" element={<Login />} />
         <Route path="/doctor" element={<ProtectedRoute path="/doctor"><Doctor /></ProtectedRoute>} />

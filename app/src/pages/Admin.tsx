@@ -2,12 +2,13 @@ import { useAuth } from "@/hooks/useAuth";
 import { trpc } from "@/providers/trpc";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { LogOut, History, Shield, FileText, MessageSquare, Calendar, Users, CreditCard, Mail, Stethoscope, UserPlus, AlertTriangle, ShoppingBag } from "lucide-react";
+import { LogOut, History, Shield, FileText, Calendar, Users, CreditCard, Mail, Stethoscope, UserPlus, AlertTriangle, ShoppingBag } from "lucide-react";
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
+import { useNavigate } from "react-router";
 import StatsCards from "@/components/dashboard/StatsCards";
 import AppointmentsSection from "@/components/dashboard/AppointmentsSection";
 import PatientQueueSection from "@/components/dashboard/PatientQueueSection";
@@ -17,16 +18,23 @@ import { ContactsSection } from "@/components/dashboard/ContactsSection";
 import { DoctorsSection } from "@/components/dashboard/DoctorsSection";
 import { StaffSection } from "@/components/dashboard/StaffSection";
 import { GlobalSearch } from "@/components/GlobalSearch";
-import { ActivityLogView } from "@/components/ActivityLogView";
-import { BackupRestore } from "@/components/BackupRestore";
 import { FeaturedDoctorPopupConfig } from "@/components/FeaturedDoctorPopupConfig";
-import { WhatsAppTemplates } from "@/components/WhatsAppTemplates";
 import { EndOfDayReport } from "@/components/EndOfDayReport";
 import { useSessionTimeout } from "@/hooks/useSessionTimeout";
 import MedicineOrdersSection from "@/components/dashboard/MedicineOrdersSection";
+import ReportDispatchSection from "@/components/dashboard/ReportDispatchSection";
+
+interface Tab {
+  value: string
+  label: string
+  icon: React.ReactNode
+  content: React.ReactNode
+}
 
 export default function Admin() {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const { data: flags } = trpc.features.list.useQuery();
   const { data: stats, isLoading: statsLoading } = trpc.appointment.stats.useQuery(undefined, {
     refetchInterval: 5000,
   });
@@ -39,6 +47,23 @@ export default function Admin() {
     setPrescriptionPatientId(patientId);
     setPrescriptionOpen(true);
   };
+
+  const allTabs: Tab[] = [
+    { value: "appointments", label: "Appointments", icon: <Calendar className="w-4 h-4" />, content: <AppointmentsSection /> },
+    { value: "patients", label: "Patients / History", icon: <Users className="w-4 h-4" />, content: <PatientQueueSection onViewPrescription={handleViewPrescription} /> },
+    { value: "billing", label: "Billing", icon: <CreditCard className="w-4 h-4" />, content: <BillingSection /> },
+    { value: "medicine_orders", label: "Medicine Orders", icon: <ShoppingBag className="w-4 h-4" />, content: <MedicineOrdersSection /> },
+    { value: "contacts", label: "Enquiries", icon: <Mail className="w-4 h-4" />, content: <ContactsSection /> },
+    { value: "staff", label: "Staff", icon: <Users className="w-4 h-4" />, content: <StaffSection /> },
+    { value: "doctors", label: "Doctors", icon: <Stethoscope className="w-4 h-4" />, content: <DoctorsSection /> },
+    { value: "report", label: "Report", icon: <FileText className="w-4 h-4" />, content: <EndOfDayReport /> },
+    { value: "featured_doctor", label: "Doctor Popup", icon: <Shield className="w-4 h-4" />, content: <FeaturedDoctorPopupConfig /> },
+    { value: "report_dispatch", label: "Reports", icon: <FileText className="w-4 h-4" />, content: <ReportDispatchSection /> },
+  ];
+
+  const enabledTabs = allTabs.filter((t) => flags?.[t.value] !== false);
+
+  const firstEnabled = enabledTabs[0]?.value || "appointments";
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-sky-50 to-blue-50">
@@ -53,7 +78,13 @@ export default function Admin() {
             </span>
           </div>
           <div className="flex items-center gap-4">
-            <GlobalSearch />
+            {flags?.global_search !== false && <GlobalSearch />}
+            {user?.role === "founder" && (
+              <Button variant="outline" size="sm" onClick={() => navigate("/dev")}>
+                <Shield className="w-4 h-4 mr-2" />
+                Dev
+              </Button>
+            )}
             <span className="text-sm text-muted-foreground hidden md:inline">
               {user?.username}
             </span>
@@ -76,103 +107,25 @@ export default function Admin() {
 
         <StatsCards stats={stats} loading={statsLoading} />
 
-        <Tabs defaultValue="appointments" className="space-y-6">
-          <div className="overflow-x-auto">
-            <TabsList className="bg-white border shadow-sm inline-flex">
-              <TabsTrigger value="appointments" className="flex items-center gap-1.5">
-                <Calendar className="w-4 h-4" />
-                Appointments
-              </TabsTrigger>
-              <TabsTrigger value="patients" className="flex items-center gap-1.5">
-                <Users className="w-4 h-4" />
-                Patients / History
-              </TabsTrigger>
-              <TabsTrigger value="billing" className="flex items-center gap-1.5">
-                <CreditCard className="w-4 h-4" />
-                Billing
-              </TabsTrigger>
-              <TabsTrigger value="medicine_orders" className="flex items-center gap-1.5">
-                <ShoppingBag className="w-4 h-4" />
-                Medicine Orders
-              </TabsTrigger>
-              <TabsTrigger value="contacts" className="flex items-center gap-1.5">
-                <Mail className="w-4 h-4" />
-                Enquiries
-              </TabsTrigger>
-              <TabsTrigger value="staff" className="flex items-center gap-1.5">
-                <Users className="w-4 h-4" />
-                Staff
-              </TabsTrigger>
-              <TabsTrigger value="doctors" className="flex items-center gap-1.5">
-                <Stethoscope className="w-4 h-4" />
-                Doctors
-              </TabsTrigger>
-              <TabsTrigger value="report" className="flex items-center gap-1.5">
-                <FileText className="w-4 h-4" />
-                Report
-              </TabsTrigger>
-              <TabsTrigger value="activity" className="flex items-center gap-1.5">
-                <History className="w-4 h-4" />
-                Activity
-              </TabsTrigger>
-              <TabsTrigger value="settings" className="flex items-center gap-1.5">
-                <Shield className="w-4 h-4" />
-                Settings
-              </TabsTrigger>
-              <TabsTrigger value="whatsapp" className="flex items-center gap-1.5">
-                <MessageSquare className="w-4 h-4" />
-                WhatsApp
-              </TabsTrigger>
-            </TabsList>
-          </div>
-
-          <TabsContent value="appointments">
-            <AppointmentsSection />
-          </TabsContent>
-
-          <TabsContent value="patients">
-            <PatientQueueSection onViewPrescription={handleViewPrescription} />
-          </TabsContent>
-
-          <TabsContent value="billing">
-            <BillingSection />
-          </TabsContent>
-
-          <TabsContent value="medicine_orders">
-            <MedicineOrdersSection />
-          </TabsContent>
-
-          <TabsContent value="contacts">
-            <ContactsSection />
-          </TabsContent>
-
-          <TabsContent value="staff">
-            <StaffSection />
-          </TabsContent>
-
-          <TabsContent value="doctors">
-            <DoctorsSection />
-          </TabsContent>
-
-          <TabsContent value="report">
-            <EndOfDayReport />
-          </TabsContent>
-
-          <TabsContent value="activity">
-            <ActivityLogView />
-          </TabsContent>
-
-          <TabsContent value="settings">
-            <div className="grid md:grid-cols-2 gap-6 items-start">
-              <BackupRestore />
-              <FeaturedDoctorPopupConfig />
+        {enabledTabs.length > 0 && (
+          <Tabs defaultValue={firstEnabled} className="space-y-6">
+            <div className="overflow-x-auto">
+              <TabsList className="bg-white border shadow-sm inline-flex">
+                {enabledTabs.map((tab) => (
+                  <TabsTrigger key={tab.value} value={tab.value} className="flex items-center gap-1.5">
+                    {tab.icon}
+                    {tab.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
             </div>
-          </TabsContent>
-
-          <TabsContent value="whatsapp">
-            <WhatsAppTemplates />
-          </TabsContent>
-        </Tabs>
+            {enabledTabs.map((tab) => (
+              <TabsContent key={tab.value} value={tab.value}>
+                {tab.content}
+              </TabsContent>
+            ))}
+          </Tabs>
+        )}
       </main>
 
       <PrescriptionDialog
