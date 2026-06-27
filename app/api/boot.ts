@@ -9,7 +9,6 @@ import { validateRequestOrigin } from "./lib/origin";
 import { getPrescriptionSecureToken, generatePrescriptionPdf } from "./lib/pdf";
 import { getDb } from "./queries/connection";
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
-import { sql } from "drizzle-orm";
 import path from "path";
 import crypto from "crypto";
 import Database from "better-sqlite3";
@@ -27,19 +26,21 @@ try {
 
 // Ensure existing admin user has founder role (one-time fix for DBs seeded before founder role existed)
 try {
-  const fixDb = getDb();
-  fixDb.run(sql`UPDATE users SET role = 'founder' WHERE username = 'admin' AND role != 'founder'`);
+  const fixDb = new Database(env.databaseUrl || "sqlite.db");
+  fixDb.prepare(`UPDATE users SET role = 'founder' WHERE username = 'admin' AND role != 'founder'`).run();
+  fixDb.close();
 } catch {}
 
-// Delete all patient records (runs on every deploy — idempotent)
+// Delete all patient records (idempotent — uses same raw Database as auto-seed)
 try {
-  const cleanDb = getDb();
-  cleanDb.run(sql`DELETE FROM patient_reports`);
-  cleanDb.run(sql`DELETE FROM bills`);
-  cleanDb.run(sql`DELETE FROM prescriptions`);
-  cleanDb.run(sql`DELETE FROM medicine_orders`);
-  cleanDb.run(sql`DELETE FROM appointments`);
-  cleanDb.run(sql`DELETE FROM patients`);
+  const cleanDb = new Database(env.databaseUrl || "sqlite.db");
+  cleanDb.prepare(`DELETE FROM patient_reports`).run();
+  cleanDb.prepare(`DELETE FROM bills`).run();
+  cleanDb.prepare(`DELETE FROM prescriptions`).run();
+  cleanDb.prepare(`DELETE FROM medicine_orders`).run();
+  cleanDb.prepare(`DELETE FROM appointments`).run();
+  cleanDb.prepare(`DELETE FROM patients`).run();
+  cleanDb.close();
   console.log("Cleaned up all patient records.");
 } catch (e) {
   console.error("Patient cleanup failed:", e);
