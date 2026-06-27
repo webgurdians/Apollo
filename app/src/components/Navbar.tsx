@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Phone, MessageCircle } from "lucide-react";
+import { Menu, X, Phone, MessageCircle, Calendar } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 const WHATSAPP_NUMBER = "917699933383";
@@ -8,6 +9,7 @@ const PHONE_NUMBER = "+917699933383";
 
 export default function Navbar() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -30,7 +32,7 @@ export default function Navbar() {
   const navLinks = [
     { label: t("nav.services"), id: "services" },
     { label: t("nav.doctors"), id: "doctors" },
-    { label: t("nav.bookAppointment"), id: "appointment" },
+    { label: t("nav.bookAppointment"), id: "book-appointment", isRoute: true },
     { label: t("nav.location"), id: "location" },
   ];
 
@@ -54,7 +56,7 @@ export default function Navbar() {
             {navLinks.map((link) => (
               <button
                 key={link.id}
-                onClick={() => scrollToSection(link.id)}
+                onClick={() => (link as any).isRoute ? navigate(link.id) : scrollToSection(link.id)}
                 className="text-sm font-medium text-muted-foreground hover:text-apollo-blue transition-colors"
               >
                 {link.label}
@@ -64,6 +66,14 @@ export default function Navbar() {
 
           {/* Desktop CTAs */}
           <div className="hidden md:flex items-center gap-3">
+            <Button
+              size="sm"
+              className="gap-2 bg-apollo-blue hover:bg-apollo-dark text-white"
+              onClick={() => navigate("/book-appointment")}
+            >
+              <Calendar className="w-4 h-4" />
+              Book Now
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -109,13 +119,26 @@ export default function Navbar() {
             {navLinks.map((link) => (
               <button
                 key={link.id}
-                onClick={() => scrollToSection(link.id)}
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  (link as any).isRoute ? navigate(link.id) : scrollToSection(link.id);
+                }}
                 className="block w-full text-left text-sm font-medium text-muted-foreground hover:text-apollo-blue py-2"
               >
                 {link.label}
               </button>
             ))}
             <div className="flex gap-3 pt-3 border-t">
+              <Button
+                className="flex-1 gap-2 bg-apollo-blue hover:bg-apollo-dark text-white"
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  navigate("/book-appointment");
+                }}
+              >
+                <Calendar className="w-4 h-4" />
+                Book Now
+              </Button>
               <Button
                 variant="outline"
                 className="flex-1 gap-2 border-apollo-blue text-apollo-blue"

@@ -1,8 +1,8 @@
 import { Routes, Route, Navigate } from 'react-router'
 import { useAuth } from './hooks/useAuth'
 import Home from './pages/Home'
-import Admin from './pages/Admin'
 import Dev from './pages/Dev'
+import BookAppointment from './pages/BookAppointment'
 import FrontDesk from './pages/FrontDesk'
 import Login from './pages/Login'
 import Doctor from './pages/Doctor'
@@ -50,6 +50,7 @@ export default function App() {
     <ErrorBoundary>
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/book-appointment" element={<BookAppointment />} />
         <Route path="/admin" element={<ProtectedRoute path="/admin"><Admin /></ProtectedRoute>} />
         <Route path="/dev" element={<ProtectedRoute path="/dev"><Dev /></ProtectedRoute>} />
         <Route path="/front-desk" element={<ProtectedRoute path="/front-desk"><FrontDesk /></ProtectedRoute>} />
