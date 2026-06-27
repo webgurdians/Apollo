@@ -2,8 +2,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { trpc } from "@/providers/trpc";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { LogOut, History, Shield, FileText, Calendar, Users, CreditCard, Mail, Stethoscope, UserPlus, AlertTriangle, ShoppingBag } from "lucide-react";
-import { useState } from "react";
+import { LogOut, Shield, FileText, Calendar, Users, CreditCard, Mail, Stethoscope, UserPlus, AlertTriangle, ShoppingBag } from "lucide-react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
@@ -56,7 +56,7 @@ export default function Admin() {
     { value: "doctors", label: "Doctors", icon: <Stethoscope className="w-4 h-4" />, content: <DoctorsSection /> },
     { value: "report", label: "Report", icon: <FileText className="w-4 h-4" />, content: <EndOfDayReport /> },
     { value: "featured_doctor", label: "Doctor Popup", icon: <Shield className="w-4 h-4" />, content: <FeaturedDoctorPopupConfig /> },
-    { value: "report_dispatch", label: "Reports", icon: <FileText className="w-4 h-4" />, content: <ReportDispatchSection /> },
+    { value: "report_dispatch", label: "Patient Reports", icon: <FileText className="w-4 h-4" />, content: <ReportDispatchSection /> },
   ];
 
   const enabledTabs = allTabs.filter((t) => flags?.[t.value] !== false);
@@ -138,10 +138,23 @@ function DialogButton({ onViewPrescription }: { onViewPrescription: (patientId: 
   const [registerConcern, setRegisterConcern] = useState("");
   const [registerDoctorId, setRegisterDoctorId] = useState("");
   const [registerDate, setRegisterDate] = useState(format(new Date(), "yyyy-MM-dd"));
-  const [paymentMethod, setPaymentMethod] = useState<"online" | "clinic">("clinic");
-
   const { data: doctors } = trpc.patients.listDoctors.useQuery();
   const utils = trpc.useUtils();
+
+  const [paymentMethod, setPaymentMethod] = useState<"online" | "clinic" | "partial">("clinic");
+  const [amountPaid, setAmountPaid] = useState(0);
+  const [amountDue, setAmountDue] = useState(0);
+  const [isDueManuallyEdited, setIsDueManuallyEdited] = useState(false);
+
+  const totalFees = registerDoctorId
+    ? (doctors?.find(d => d.id === parseInt(registerDoctorId))?.fees ?? 1200)
+    : 500;
+
+  useEffect(() => {
+    if (!isDueManuallyEdited) {
+      setAmountDue(Math.max(0, totalFees - amountPaid));
+    }
+  }, [amountPaid, totalFees, isDueManuallyEdited]);
 
   const { data: existingPatients } = trpc.patients.findByPhone.useQuery(
     { phone: registerPhone },
@@ -161,6 +174,9 @@ function DialogButton({ onViewPrescription }: { onViewPrescription: (patientId: 
       setRegisterDoctorId("");
       setRegisterDate(format(new Date(), "yyyy-MM-dd"));
       setPaymentMethod("clinic");
+      setAmountPaid(0);
+      setAmountDue(0);
+      setIsDueManuallyEdited(false);
     },
     onError: (err) => {
       alert("Error booking appointment: " + err.message);
@@ -213,6 +229,8 @@ function DialogButton({ onViewPrescription }: { onViewPrescription: (patientId: 
               message: registerConcern,
               doctorId: registerDoctorId ? parseInt(registerDoctorId) : undefined,
               paymentMethod: paymentMethod,
+              amountPaid: paymentMethod === "partial" ? amountPaid : undefined,
+              amountDue: paymentMethod === "partial" ? amountDue : undefined,
             });
           }}
           className="space-y-4"
@@ -323,16 +341,48 @@ function DialogButton({ onViewPrescription }: { onViewPrescription: (patientId: 
           </div>
           <div>
             <label className="text-sm font-medium mb-1 block">Payment Status</label>
-            <Select value={paymentMethod} onValueChange={(val: "online" | "clinic") => setPaymentMethod(val)}>
+            <Select value={paymentMethod} onValueChange={(val: "online" | "clinic" | "partial") => setPaymentMethod(val)}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="online">Paid (Online / Cash upfront)</SelectItem>
                 <SelectItem value="clinic">Pending (Pay at Clinic)</SelectItem>
+                <SelectItem value="partial">Partial / Advance</SelectItem>
               </SelectContent>
             </Select>
           </div>
+
+          {paymentMethod === "partial" && (
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium mb-1 block">Amount Paid (₹)</label>
+                <Input
+                  type="number"
+                  value={amountPaid}
+                  onChange={(e) => setAmountPaid(Number(e.target.value))}
+                  placeholder="Amount Paid"
+                  min={0}
+                  max={totalFees}
+                  required
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1 block">Amount Due (₹)</label>
+                <Input
+                  type="number"
+                  value={amountDue}
+                  onChange={(e) => {
+                    setAmountDue(Number(e.target.value));
+                    setIsDueManuallyEdited(true);
+                  }}
+                  placeholder="Amount Due"
+                  min={0}
+                  required
+                />
+              </div>
+            </div>
+          )}
           <Button type="submit" className="w-full" disabled={bookWalkin.isPending}>
             {bookWalkin.isPending ? "Booking..." : "Book Walk-in / Register"}
           </Button>

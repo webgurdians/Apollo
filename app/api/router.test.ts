@@ -248,6 +248,46 @@ describe("TRPC API Router Integration Tests", () => {
       expect(response.success).toBe(true);
     });
 
+    it("creates an appointment with partial payment", async () => {
+      const db = getDb();
+      const caller = appRouter.createCaller(createMockContext());
+      const response = await caller.appointment.create({
+        name: "Partial Patient 123",
+        phone: "9876543299",
+        service: "OPD Consultation - General Physician",
+        preferredDate: new Date().toISOString(),
+        message: "Partial payment test",
+        paymentMethod: "partial",
+        amountPaid: 200,
+        amountDue: 300,
+      });
+      expect(response.success).toBe(true);
+
+      const apt = (await db
+        .select()
+        .from(schema.appointments)
+        .where(eq(schema.appointments.name, "Partial Patient 123"))
+        .limit(1))[0];
+      expect(apt).toBeDefined();
+      expect(apt.amountPaid).toBe(200);
+      expect(apt.amountDue).toBe(300);
+
+      const bill = (await db
+        .select()
+        .from(schema.bills)
+        .where(eq(schema.bills.appointmentId, apt.id))
+        .limit(1))[0];
+      expect(bill).toBeDefined();
+      expect(bill.amount).toBe(200);
+      expect(bill.total).toBe(200);
+      expect(bill.status).toBe("paid");
+
+      // Clean up to prevent affecting subsequent test cases
+      await db.delete(schema.bills).where(eq(schema.bills.appointmentId, apt.id));
+      await db.delete(schema.appointments).where(eq(schema.appointments.id, apt.id));
+      await db.delete(schema.patients).where(eq(schema.patients.phone, "9876543299"));
+    });
+
     it("fails listing appointments if not staff or admin", async () => {
       const caller = appRouter.createCaller(createMockContext());
       await expect(caller.appointment.list()).rejects.toThrow("Authentication required");

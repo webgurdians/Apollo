@@ -24,10 +24,9 @@ const servicePrices: Record<string, number> = {
   "OPD Consultation - Cardiology (BP/ECG)": 800,
   "Blood Test / Pathology": 1200,
   "ECG": 300,
-  "X-Ray": 500,
   "Urine Test": 150,
   "Ultrasound": 1000,
-  "Apollo Chennai Referral": 1500,
+  "Apollo Chennai Direct Appointment": 1500,
   "Health Checkup Package": 2999,
 };
 
@@ -77,6 +76,45 @@ export default function AppointmentsSection() {
     },
   });
 
+  const renderPaymentStatus = (apt: any) => {
+    if (apt.amountPaid !== null && apt.amountPaid !== undefined) {
+      if (apt.amountDue > 0) {
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">
+            Partial (₹{apt.amountPaid} paid, ₹{apt.amountDue} due)
+          </span>
+        );
+      } else {
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800">
+            Paid (₹{apt.amountPaid})
+          </span>
+        );
+      }
+    }
+
+    if (apt.paymentStatus === "paid") {
+      const price = apt.doctorFees ?? servicePrices[apt.service] ?? 500;
+      return (
+        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800">
+          Paid (₹{price})
+        </span>
+      );
+    } else if (apt.paymentStatus === "pending") {
+      return (
+        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800">
+          Unpaid
+        </span>
+      );
+    } else {
+      return (
+        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800">
+          Failed
+        </span>
+      );
+    }
+  };
+
   const confirmedOrPaidAppointments = appointments?.filter(
     (apt) => apt.status === "confirmed" || apt.paymentStatus === "paid" || apt.status === "completed"
   ) || [];
@@ -111,6 +149,7 @@ export default function AppointmentsSection() {
               <TableHead>Date</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Payment</TableHead>
+              <TableHead>Payment Details</TableHead>
               <TableHead>Date Added</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -169,6 +208,9 @@ export default function AppointmentsSection() {
                       <SelectItem value="failed">Failed</SelectItem>
                     </SelectContent>
                   </Select>
+                </TableCell>
+                <TableCell>
+                  {renderPaymentStatus(apt)}
                 </TableCell>
                 <TableCell className="text-sm text-muted-foreground">
                   {apt.createdAt ? format(new Date(apt.createdAt), "dd MMM, hh:mm a") : "—"}

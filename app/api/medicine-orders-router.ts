@@ -23,6 +23,8 @@ export const medicineOrdersRouter = createRouter({
         totalAmount: medicineOrders.totalAmount,
         paymentStatus: medicineOrders.paymentStatus,
         deliveryStatus: medicineOrders.deliveryStatus,
+        prescriptionUrl: medicineOrders.prescriptionUrl,
+        awbNo: medicineOrders.awbNo,
         createdAt: medicineOrders.createdAt,
         updatedAt: medicineOrders.updatedAt,
         patientName: patients.name,
@@ -35,7 +37,7 @@ export const medicineOrdersRouter = createRouter({
     
     return results;
   }),
-
+ 
   create: staffQuery
     .input(
       z.object({
@@ -45,22 +47,24 @@ export const medicineOrdersRouter = createRouter({
         paymentStatus: z.enum(["pending", "paid"]).default("pending"),
         deliveryStatus: z.enum(["placed", "out_for_delivery", "delivered", "cancelled"]).default("placed"),
         paymentMethod: z.enum(["cash", "upi", "online"]).optional(),
+        prescriptionUrl: z.string().optional(),
+        awbNo: z.string().optional(),
       })
     )
     .mutation(async ({ input, ctx }) => {
       const db = getDb();
-
+ 
       // Verify patient exists
       const [patient] = await db
         .select()
         .from(patients)
         .where(and(eq(patients.id, input.patientId), isNull(patients.deletedAt)))
         .limit(1);
-
+ 
       if (!patient) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Patient not found" });
       }
-
+ 
       // 1. Create the medicine order
       const [newOrder] = await db
         .insert(medicineOrders)
@@ -70,9 +74,11 @@ export const medicineOrdersRouter = createRouter({
           totalAmount: input.totalAmount,
           paymentStatus: input.paymentStatus,
           deliveryStatus: input.deliveryStatus,
+          prescriptionUrl: input.prescriptionUrl || null,
+          awbNo: input.awbNo || null,
         })
         .returning();
-
+ 
       // 2. Create the associated bill
       await db.insert(bills).values({
         medicineOrderId: newOrder.id,
@@ -84,7 +90,7 @@ export const medicineOrdersRouter = createRouter({
         paymentMethod: input.paymentMethod || null,
         lockedAt: input.paymentStatus === "paid" ? new Date() : null,
       });
-
+ 
       await logActivity(
         ctx.user,
         "create",
@@ -92,10 +98,10 @@ export const medicineOrdersRouter = createRouter({
         newOrder.id,
         `Placed medicine order for patient ${patient.name}: ₹${input.totalAmount}`
       );
-
+ 
       return { success: true, orderId: newOrder.id };
     }),
-
+ 
   updateDeliveryStatus: staffQuery
     .input(
       z.object({
@@ -111,11 +117,11 @@ export const medicineOrdersRouter = createRouter({
         .set({ deliveryStatus: input.deliveryStatus })
         .where(eq(medicineOrders.id, input.id))
         .returning();
-
+ 
       if (!order) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Order not found" });
       }
-
+ 
       await logActivity(
         ctx.user,
         "update",
@@ -123,10 +129,10 @@ export const medicineOrdersRouter = createRouter({
         input.id,
         `Updated delivery status to ${input.deliveryStatus}`
       );
-
+ 
       return { success: true };
     }),
-
+ 
   updatePaymentStatus: staffQuery
     .input(
       z.object({
@@ -137,17 +143,17 @@ export const medicineOrdersRouter = createRouter({
     )
     .mutation(async ({ input, ctx }) => {
       const db = getDb();
-
+ 
       const [order] = await db
         .update(medicineOrders)
         .set({ paymentStatus: input.paymentStatus })
         .where(eq(medicineOrders.id, input.id))
         .returning();
-
+ 
       if (!order) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Order not found" });
       }
-
+ 
       // Sync the bill status
       await db
         .update(bills)
@@ -157,13 +163,43 @@ export const medicineOrdersRouter = createRouter({
           lockedAt: input.paymentStatus === "paid" ? new Date() : null,
         })
         .where(eq(bills.medicineOrderId, input.id));
-
+ 
       await logActivity(
         ctx.user,
         "update",
         "medicine_order",
         input.id,
         `Updated payment status to ${input.paymentStatus}`
+      );
+ 
+      return { success: true };
+    }),
+
+  updateAwbNo: staffQuery
+    .input(
+      z.object({
+        id: z.number(),
+        awbNo: z.string().nullable(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb();
+      const [order] = await db
+        .update(medicineOrders)
+        .set({ awbNo: input.awbNo })
+        .where(eq(medicineOrders.id, input.id))
+        .returning();
+
+      if (!order) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Order not found" });
+      }
+
+      await logActivity(
+        ctx.user,
+        "update",
+        "medicine_order",
+        input.id,
+        `Updated AWB/Tracking number to ${input.awbNo}`
       );
 
       return { success: true };

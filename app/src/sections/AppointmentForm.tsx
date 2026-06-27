@@ -28,6 +28,7 @@ import {
   Stethoscope,
   Banknote,
   CreditCard,
+  FileText,
 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -41,10 +42,9 @@ const services = [
   { name: "OPD Consultation - Cardiology (BP/ECG)", price: 800 },
   { name: "Blood Test / Pathology", price: 1200 },
   { name: "ECG", price: 300 },
-  { name: "X-Ray", price: 500 },
   { name: "Urine Test", price: 150 },
   { name: "Ultrasound", price: 1000 },
-  { name: "Apollo Chennai Referral", price: 1500 },
+  { name: "Apollo Chennai Direct Appointment", price: 1500 },
   { name: "Health Checkup Package", price: 2999 },
 ];
 
@@ -97,7 +97,6 @@ export default function AppointmentForm({
         ...dbDoctors.map(doc => ({ name: doc.serviceName || `${doc.name} - ${doc.specialty}`, price: doc.fees ?? 1200 })),
         { name: "Blood Test / Pathology", price: 1200 },
         { name: "ECG", price: 300 },
-        { name: "X-Ray", price: 500 },
         { name: "Urine Test", price: 150 },
         { name: "Ultrasound", price: 1000 },
         { name: "Health Checkup Package", price: 2999 },
@@ -137,8 +136,58 @@ export default function AppointmentForm({
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleBookingSuccess = () => {
+  const [bookingDetails, setBookingDetails] = useState<{
+    paymentId: string;
+    amount: number;
+    phone: string;
+    patientName: string;
+    service: string;
+    date: string;
+  } | null>(null);
+
+  const downloadReceipt = async () => {
+    if (!bookingDetails) return;
+    try {
+      const response = await fetch("http://localhost:4000/generate-pdf", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(bookingDetails),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to generate PDF");
+      }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `receipt_${bookingDetails.paymentId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error(err);
+      alert("Error downloading receipt. Make sure the receipt service is running on port 4000.");
+    }
+  };
+
+  const handleBookingSuccess = (paymentId?: string) => {
     setSubmitted(true);
+    const payId = paymentId || `apt_${Date.now()}`;
+    const selectedService = formServices.find((s) => s.name === serviceName);
+    const price = selectedService?.price || 500;
+
+    setBookingDetails({
+      paymentId: payId,
+      amount: price,
+      phone: phone.trim(),
+      patientName: name.trim(),
+      service: serviceName,
+      date: date ? format(date, "dd/MM/yyyy") : format(new Date(), "dd/MM/yyyy"),
+    });
+
     // Open WhatsApp to send pending approval message to the clinic (simulating automated messaging with click-to-chat)
     const whatsappText = `Hi Apollo Aranghata, I have submitted an appointment request.\n*Name:* ${name}\n*Age:* ${age}\n*Phone:* ${phone}\n*Service:* ${serviceName}\n*Preferred Date:* ${date ? format(date, "dd MMM yyyy") : ""}\n*Payment:* ${paymentMethod === "online" ? "Paid Online" : "Pay at Clinic"}\n\nPlease confirm my appointment.`;
     window.open(
@@ -168,7 +217,7 @@ export default function AppointmentForm({
           currency: "INR",
           name: "Apollo Clinic",
           description: serviceName,
-          handler: async () => {
+          handler: async (response: { razorpay_payment_id: string }) => {
             await createAppointment.mutateAsync({
               name: name.trim(),
               phone: phone.trim(),
@@ -178,7 +227,7 @@ export default function AppointmentForm({
               message: message.trim() || undefined,
               paymentMethod: "online",
             });
-            handleBookingSuccess();
+            handleBookingSuccess(response.razorpay_payment_id);
           },
           prefill: { name, contact: phone },
           theme: { color: "#2563eb" },
@@ -230,6 +279,14 @@ export default function AppointmentForm({
               >
                 <MessageCircle className="w-5 h-5" />
                 {t("appointment.followUp")}
+              </Button>
+              <Button
+                variant="outline"
+                className="gap-2 border-green-600 text-green-600 hover:bg-green-50"
+                onClick={downloadReceipt}
+              >
+                <FileText className="w-5 h-5" />
+                Download Receipt (PDF)
               </Button>
               <Button
                 variant="outline"

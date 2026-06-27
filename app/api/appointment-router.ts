@@ -25,9 +25,11 @@ export const createAppointmentInput = z.object({
   endTime: z.string().optional(),
   doctorId: z.number().optional(),
   message: z.string().optional(),
-  paymentMethod: z.enum(["online", "clinic"]).optional().default("clinic"),
+  paymentMethod: z.enum(["online", "clinic", "partial"]).optional().default("clinic"),
   age: z.coerce.number().optional(),
   gender: z.string().optional(),
+  amountPaid: z.number().optional(),
+  amountDue: z.number().optional(),
 }).strict();
 
 async function getNextAppointmentNumber(db: DrizzleDB, doctorId: number | null, preferredDate: Date): Promise<number> {
@@ -87,10 +89,9 @@ async function ensureBillCreated(db: DrizzleDB, appointmentId: number, paymentMe
     "OPD Consultation - Cardiology (BP/ECG)": 800,
     "Blood Test / Pathology": 1200,
     "ECG": 300,
-    "X-Ray": 500,
     "Urine Test": 150,
     "Ultrasound": 1000,
-    "Apollo Chennai Referral": 1500,
+    "Apollo Chennai Direct Appointment": 1500,
     "Health Checkup Package": 2999,
   };
 
@@ -212,6 +213,7 @@ export const appointmentRouter = createRouter({
       }
 
       const isPaid = input.paymentMethod === "online";
+      const isPartial = input.paymentMethod === "partial";
       const preferredDate = new Date(input.preferredDate);
       
       // Calculate token number only if it is paid online
@@ -230,10 +232,25 @@ export const appointmentRouter = createRouter({
         status: isPaid ? "confirmed" : "pending",
         paymentStatus: isPaid ? "paid" : "pending",
         appointmentNumber: appointmentNum,
+        amountPaid: isPartial ? (input.amountPaid || 0) : null,
+        amountDue: isPartial ? (input.amountDue || 0) : null,
       }).returning({ id: appointments.id });
 
       if (isPaid && insertedApt) {
         await ensureBillCreated(db, insertedApt.id, "online");
+      } else if (isPartial && insertedApt) {
+        // Create a bill with paid status for the paid portion
+        const paidAmount = input.amountPaid || 0;
+        await db.insert(bills).values({
+          appointmentId: insertedApt.id,
+          amount: paidAmount,
+          tax: 0,
+          discount: 0,
+          total: paidAmount,
+          status: "paid",
+          paymentMethod: "cash",
+          lockedAt: new Date(),
+        });
       }
 
       return { success: true };
@@ -260,6 +277,8 @@ export const appointmentRouter = createRouter({
         appointmentNumber: appointments.appointmentNumber,
         doctorName: doctors.name,
         doctorFees: doctors.fees,
+        amountPaid: appointments.amountPaid,
+        amountDue: appointments.amountDue,
       })
       .from(appointments)
       .leftJoin(doctors, eq(appointments.doctorId, doctors.id))

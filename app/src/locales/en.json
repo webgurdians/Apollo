@@ -15,16 +15,16 @@
     "subhead": "Apollo Information Centre Aranghata brings world-class healthcare closer to you. Book consultations, diagnostics, and specialist referrals — all in one place.",
     "sameDay": "Same-Day Appointments",
     "aranghata": "Aranghata, Nadia",
-    "bookWhatsApp": "Book on WhatsApp",
+    "bookWhatsApp": "Book Now",
     "callNow": "Call Now",
-    "patientsServed": "patients served in Aranghata & Ranaghat",
+    "patientsServed": "patients served in West Bengal.",
     "openToday": "Open Today",
     "apolloInfoCentre": "Apollo Information Centre",
     "aranghataWB": "Aranghata, West Bengal",
     "opdConsultation": "OPD Consultation",
     "bloodTests": "Blood Tests",
-    "ecgXray": "ECG / X-Ray",
-    "chennaiReferral": "Apollo Chennai Referral",
+    "ecgXray": "ECG",
+    "chennaiReferral": "Apollo Chennai Direct Appointment",
     "available": "Available",
     "bookAppointment": "Book Appointment"
   },
@@ -49,13 +49,13 @@
     "opdFeatures": ["General Physician", "Diabetes Care", "BP Monitoring", "Thyroid Check"],
     "opdCta": "Book OPD",
     "diagTitle": "Diagnostic Tests",
-    "diagDesc": "Comprehensive pathology and radiology services including blood tests, urine tests, ECG, X-Ray, and ultrasound with accurate reports.",
-    "diagFeatures": ["Blood Tests", "ECG", "X-Ray", "Urine Tests"],
+    "diagDesc": "Comprehensive pathology and radiology services including blood tests, urine tests, ECG, and ultrasound with accurate reports.",
+    "diagFeatures": ["Blood Tests", "ECG", "Urine Tests"],
     "diagCta": "Book Test",
-    "referralTitle": "Apollo Chennai Referral",
-    "referralDesc": "Direct referral and appointment booking for Apollo Hospitals Chennai. We handle your case papers, prior reports, and scheduling.",
-    "referralFeatures": ["Direct Referral", "Report Handling", "Appointment Fix", "Follow-up Support"],
-    "referralCta": "Get Referral"
+    "referralTitle": "Apollo Chennai Direct Appointment",
+    "referralDesc": "Direct appointment booking for Apollo Hospitals Chennai. We handle your case papers, prior reports, and scheduling.",
+    "referralFeatures": ["Direct Appointment", "Report Handling", "Appointment Fix", "Follow-up Support"],
+    "referralCta": "Book Appointment"
   },
   "howItWorks": {
     "sectionTitle": "Simple Process",
@@ -163,7 +163,8 @@
     "quickLinks": "Quick Links",
     "contactUs": "Contact Us",
     "whatsappUs": "WhatsApp Us",
-    "copyright": "© {{year}} Apollo Information Centre Aranghata"
+    "copyright": "© {{year}} Apollo Information Centre Aranghata. Built by Patrika Media (Neel).",
+    "madeWith": "Made with {{heart}} for the community"
   },
   "floatingWhatsApp": {
     "ariaLabel": "Chat on WhatsApp"

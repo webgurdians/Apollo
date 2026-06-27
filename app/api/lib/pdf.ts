@@ -1,5 +1,7 @@
 import PDFDocument from "pdfkit";
 import crypto from "crypto";
+import path from "path";
+import fs from "fs";
 
 export function getPrescriptionSecureToken(id: number): string {
   const secret = process.env.APP_SECRET;
@@ -62,11 +64,29 @@ export function generatePrescriptionPdf(prescription: PrescriptionDetails): Prom
     const lightGray = "#f8fafc";    // Background Light Slate
     const borderGray = "#cbd5e1";   // Border Slate
 
-    // 1. Apollo Header
-    doc.fillColor(primaryColor).fontSize(26).font("Helvetica-Bold").text("APOLLO CLINIC", { align: "left" });
-    doc.fillColor(grayColor).fontSize(9).font("Helvetica").text("Information Centre Aranghata", { align: "left" });
+    // 1. Apollo Header with Logo
+    let logoPath = path.resolve(__dirname, "../../public/images/logo.png");
+    if (!fs.existsSync(logoPath)) {
+      logoPath = path.resolve(process.cwd(), "public/images/logo.png");
+    }
+    if (!fs.existsSync(logoPath)) {
+      logoPath = path.resolve(process.cwd(), "app/public/images/logo.png");
+    }
+
+    let headerTextX = 50;
+    if (fs.existsSync(logoPath)) {
+      try {
+        doc.image(logoPath, 50, 45, { width: 45 });
+        headerTextX = 105;
+      } catch (err) {
+        console.error("Failed to render logo image in PDFKit:", err);
+      }
+    }
+
+    doc.fillColor(primaryColor).fontSize(20).font("Helvetica-Bold").text("APOLLO CLINIC", headerTextX, 48);
+    doc.fillColor(grayColor).fontSize(9).font("Helvetica").text("Information Centre Aranghata", headerTextX, doc.y);
     
-    const headerY = doc.y;
+    const headerY = Math.max(doc.y, 45 + 45);
 
     // 2. Doctor Info (Right Aligned)
     doc.fillColor(darkColor).fontSize(14).font("Helvetica-Bold").text(`Dr. ${prescription.doctorName || "Doctor"}`, 250, 50, { align: "right", width: 290 });

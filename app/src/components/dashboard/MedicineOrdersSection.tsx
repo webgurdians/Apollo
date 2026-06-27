@@ -44,6 +44,42 @@ interface OrderItem {
   price: number;
 }
 
+function AwbInput({ order, onUpdate }: { order: any; onUpdate: () => void }) {
+  const [val, setVal] = useState(order.awbNo || "");
+  const updateAwb = trpc.medicineOrders.updateAwbNo.useMutation({
+    onSuccess: () => {
+      toast.success("AWB/Tracking number updated!");
+      onUpdate();
+    },
+    onError: (err) => {
+      toast.error("Failed to update AWB: " + err.message);
+    },
+  });
+
+  const hasChanged = val !== (order.awbNo || "");
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <Input
+        placeholder="AWB No"
+        value={val}
+        onChange={(e) => setVal(e.target.value)}
+        className="h-7 text-[10px] w-24 px-2"
+      />
+      {hasChanged && (
+        <Button
+          size="sm"
+          className="h-7 px-2 bg-green-600 hover:bg-green-700 text-white font-semibold text-[10px]"
+          onClick={() => updateAwb.mutate({ id: order.id, awbNo: val || null })}
+          disabled={updateAwb.isPending}
+        >
+          {updateAwb.isPending ? "..." : "Save"}
+        </Button>
+      )}
+    </div>
+  );
+}
+
 export default function MedicineOrdersSection() {
   const utils = trpc.useUtils();
 
@@ -111,6 +147,7 @@ export default function MedicineOrdersSection() {
     "placed" | "out_for_delivery" | "delivered" | "cancelled"
   >("placed");
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "upi" | "online">("cash");
+  const [prescriptionUrl, setPrescriptionUrl] = useState<string>("");
 
   // State: Patient Register Form & Dialog
   const [showRegisterDialog, setShowRegisterDialog] = useState(false);
@@ -129,6 +166,7 @@ export default function MedicineOrdersSection() {
     setPaymentStatus("pending");
     setDeliveryStatus("placed");
     setPaymentMethod("cash");
+    setPrescriptionUrl("");
   };
 
   const resetRegisterForm = () => {
@@ -151,6 +189,18 @@ export default function MedicineOrdersSection() {
       phone: regPhone,
       concern: "Medicine Delivery Order (Phone Request)",
     });
+  };
+
+  const handlePrescriptionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPrescriptionUrl(reader.result as string);
+        toast.success("Prescription attached successfully!");
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleAddItem = () => {
@@ -188,6 +238,7 @@ export default function MedicineOrdersSection() {
       paymentStatus,
       deliveryStatus,
       paymentMethod: paymentStatus === "paid" ? paymentMethod : undefined,
+      prescriptionUrl: prescriptionUrl || undefined,
     });
   };
 
@@ -405,6 +456,19 @@ export default function MedicineOrdersSection() {
             </div>
           )}
 
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold">Upload Prescription (optional)</Label>
+            <Input
+              type="file"
+              accept="image/*,application/pdf"
+              onChange={handlePrescriptionChange}
+              className="text-xs h-9 cursor-pointer"
+            />
+            {prescriptionUrl && (
+              <p className="text-[10px] text-green-600 font-semibold">Prescription attached ✓</p>
+            )}
+          </div>
+
           {/* Value Display */}
           <div className="bg-slate-50 border rounded-lg p-3 flex justify-between items-center text-xs">
             <span className="font-medium text-slate-600">Total Order Value:</span>
@@ -467,8 +531,10 @@ export default function MedicineOrdersSection() {
                   <TableHead className="text-xs">Order ID</TableHead>
                   <TableHead className="text-xs">Patient Details</TableHead>
                   <TableHead className="text-xs">Items</TableHead>
+                  <TableHead className="text-xs">Prescription</TableHead>
                   <TableHead className="text-xs">Value</TableHead>
                   <TableHead className="text-xs">Payment</TableHead>
+                  <TableHead className="text-xs">AWB / Tracking</TableHead>
                   <TableHead className="text-xs">Delivery Status</TableHead>
                   <TableHead className="text-xs">Date Placed</TableHead>
                 </TableRow>
@@ -490,6 +556,19 @@ export default function MedicineOrdersSection() {
                       <TableCell className="max-w-[150px] truncate text-[11px] text-slate-700">
                         {orderItems.map((it) => `${it.medicineName} (x${it.quantity})`).join(", ")}
                       </TableCell>
+                      <TableCell>
+                        {order.prescriptionUrl ? (
+                          <a
+                            href={order.prescriptionUrl}
+                            download={`prescription-order-${order.id}`}
+                            className="text-[11px] text-blue-600 hover:underline font-semibold flex items-center gap-1"
+                          >
+                            Download
+                          </a>
+                        ) : (
+                          <span className="text-[11px] text-slate-400">None</span>
+                        )}
+                      </TableCell>
                       <TableCell className="font-bold text-xs">₹{order.totalAmount}</TableCell>
                       <TableCell>
                         <Select
@@ -508,6 +587,9 @@ export default function MedicineOrdersSection() {
                             <SelectItem value="paid">Paid</SelectItem>
                           </SelectContent>
                         </Select>
+                      </TableCell>
+                      <TableCell>
+                        <AwbInput order={order} onUpdate={() => utils.medicineOrders.list.invalidate()} />
                       </TableCell>
                       <TableCell>
                         <Select

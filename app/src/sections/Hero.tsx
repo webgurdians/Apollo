@@ -1,8 +1,7 @@
 import { Button } from "@/components/ui/button";
-import { Phone, MessageCircle, Clock, Shield, MapPin } from "lucide-react";
+import { Phone, Calendar, Clock, Shield, MapPin } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-const WHATSAPP_NUMBER = "917699933383";
 const PHONE_NUMBER = "+917699933383";
 
 export default function Hero() {
@@ -51,14 +50,14 @@ export default function Hero() {
               <Button
                 size="lg"
                 className="gap-2 bg-apollo-orange hover:bg-apollo-orange/90 text-white text-base px-8 py-6 shadow-lg shadow-apollo-orange/25"
-                onClick={() =>
-                  window.open(
-                    `https://wa.me/${WHATSAPP_NUMBER}?text=Hi%20Apollo%20Aranghata,%20I%20want%20to%20book%20an%20appointment`,
-                    "_blank"
-                  )
-                }
+                onClick={() => {
+                  const element = document.getElementById("appointment");
+                  if (element) {
+                    element.scrollIntoView({ behavior: "smooth" });
+                  }
+                }}
               >
-                <MessageCircle className="w-5 h-5" />
+                <Calendar className="w-5 h-5" />
                 {t("hero.bookWhatsApp")}
               </Button>
               <Button
@@ -85,7 +84,7 @@ export default function Hero() {
                 ))}
               </div>
               <p>
-                <span className="font-semibold text-foreground">500+</span> {t("hero.patientsServed")}
+                <span className="font-semibold text-foreground">10000+</span> {t("hero.patientsServed")}
               </p>
             </div>
           </div>

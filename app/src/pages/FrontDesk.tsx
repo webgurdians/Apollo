@@ -40,18 +40,16 @@ import {
   Users,
   Shield,
   ShoppingBag,
-  FileText,
 } from "lucide-react";
 import { Link } from "react-router";
 import { format } from "date-fns";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import StatsCards from "@/components/dashboard/StatsCards";
 import AppointmentsSection from "@/components/dashboard/AppointmentsSection";
 import PrescriptionDialog from "@/components/dashboard/PrescriptionDialog";
 import { type BillRow, loadRazorpayScript } from "@/lib/razorpay";
 import { FeaturedDoctorPopupConfig } from "@/components/FeaturedDoctorPopupConfig";
 import MedicineOrdersSection from "@/components/dashboard/MedicineOrdersSection";
-import ReportDispatchSection from "@/components/dashboard/ReportDispatchSection";
 
 const RAZORPAY_KEY = import.meta.env.VITE_RAZORPAY_KEY_ID || "";
 
@@ -71,6 +69,21 @@ export default function FrontDesk() {
   const [registerConcern, setRegisterConcern] = useState("");
   const [registerDoctorId, setRegisterDoctorId] = useState("");
   const [registerDate, setRegisterDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [paymentMethod, setPaymentMethod] = useState<"online" | "clinic" | "partial">("clinic");
+  const [amountPaid, setAmountPaid] = useState(0);
+  const [amountDue, setAmountDue] = useState(0);
+  const [isDueManuallyEdited, setIsDueManuallyEdited] = useState(false);
+
+  const totalFees = registerDoctorId
+    ? (doctors?.find(d => d.id === parseInt(registerDoctorId))?.fees ?? 1200)
+    : 500;
+
+  useEffect(() => {
+    if (!isDueManuallyEdited) {
+      setAmountDue(Math.max(0, totalFees - amountPaid));
+    }
+  }, [amountPaid, totalFees, isDueManuallyEdited]);
+
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedPatientId, setSelectedPatientId] = useState<number | null>(null);
   const [prescriptionOpen, setPrescriptionOpen] = useState(false);
@@ -104,6 +117,10 @@ export default function FrontDesk() {
       setRegisterConcern("");
       setRegisterDoctorId("");
       setRegisterDate(format(new Date(), "yyyy-MM-dd"));
+      setPaymentMethod("clinic");
+      setAmountPaid(0);
+      setAmountDue(0);
+      setIsDueManuallyEdited(false);
     },
   });
 
@@ -251,10 +268,6 @@ export default function FrontDesk() {
             <TabsTrigger value="medicine_orders" className="flex items-center gap-1.5">
               <ShoppingBag className="w-4 h-4" />
               Medicine Orders
-            </TabsTrigger>
-            <TabsTrigger value="reports" className="flex items-center gap-1.5">
-              <FileText className="w-4 h-4" />
-              Reports
             </TabsTrigger>
             <TabsTrigger value="settings" className="flex items-center gap-1.5">
               <Shield className="w-4 h-4" />
@@ -435,7 +448,9 @@ export default function FrontDesk() {
                         preferredDate: registerDate,
                         message: registerConcern,
                         doctorId: registerDoctorId ? parseInt(registerDoctorId) : undefined,
-                        paymentMethod: "clinic",
+                        paymentMethod: paymentMethod,
+                        amountPaid: paymentMethod === "partial" ? amountPaid : undefined,
+                        amountDue: paymentMethod === "partial" ? amountDue : undefined,
                       });
                     }}
                     className="space-y-4"
@@ -512,7 +527,51 @@ export default function FrontDesk() {
                       <label className="text-sm font-medium mb-1 block">Issue / Concern</label>
                       <Input value={registerConcern} onChange={(e) => setRegisterConcern(e.target.value)} placeholder="Reason for appointment" required />
                     </div>
-                    <Button type="submit" className="w-full" disabled={bookWalkin.isPending}>
+                     <div>
+                       <label className="text-sm font-medium mb-1 block">Payment Status</label>
+                       <Select value={paymentMethod} onValueChange={(val: "online" | "clinic" | "partial") => setPaymentMethod(val)}>
+                         <SelectTrigger>
+                           <SelectValue />
+                         </SelectTrigger>
+                         <SelectContent>
+                           <SelectItem value="online">Paid (Online / Cash upfront)</SelectItem>
+                           <SelectItem value="clinic">Pending (Pay at Clinic)</SelectItem>
+                           <SelectItem value="partial">Partial / Advance</SelectItem>
+                         </SelectContent>
+                       </Select>
+                     </div>
+
+                     {paymentMethod === "partial" && (
+                       <div className="grid grid-cols-2 gap-4">
+                         <div>
+                           <label className="text-sm font-medium mb-1 block">Amount Paid (₹)</label>
+                           <Input
+                             type="number"
+                             value={amountPaid}
+                             onChange={(e) => setAmountPaid(Number(e.target.value))}
+                             placeholder="Amount Paid"
+                             min={0}
+                             max={totalFees}
+                             required
+                           />
+                         </div>
+                         <div>
+                           <label className="text-sm font-medium mb-1 block">Amount Due (₹)</label>
+                           <Input
+                             type="number"
+                             value={amountDue}
+                             onChange={(e) => {
+                               setAmountDue(Number(e.target.value));
+                               setIsDueManuallyEdited(true);
+                             }}
+                             placeholder="Amount Due"
+                             min={0}
+                             required
+                           />
+                         </div>
+                       </div>
+                     )}
+                     <Button type="submit" className="w-full" disabled={bookWalkin.isPending}>
                       {bookWalkin.isPending ? "Booking..." : "Book Walk-in / Register"}
                     </Button>
                   </form>
@@ -636,9 +695,6 @@ export default function FrontDesk() {
           )}
           <TabsContent value="medicine_orders">
             <MedicineOrdersSection />
-          </TabsContent>
-          <TabsContent value="reports">
-            <ReportDispatchSection />
           </TabsContent>
           <TabsContent value="settings">
             <div className="max-w-xl">
