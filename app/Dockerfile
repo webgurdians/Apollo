@@ -18,5 +18,11 @@ COPY --from=build /app/dist ./dist
 COPY --from=build /app/db/migrations ./db/migrations
 COPY package.json ./
 
+# Create persistent data directory (mount a Railway Volume here)
+RUN mkdir -p /data
+
+# Default DB path — override with Railway Volume env var DATABASE_URL=/data/sqlite.db
+ENV DATABASE_URL=/data/sqlite.db
+
 EXPOSE 3000
 CMD ["npm", "start"]
