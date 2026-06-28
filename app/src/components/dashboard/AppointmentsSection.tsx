@@ -1,4 +1,5 @@
-import { trpc } from "@/providers/trpc";
+import { trpc, getBaseUrl } from "@/providers/trpc";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -247,11 +248,14 @@ export default function AppointmentsSection() {
                             },
                             {
                               onSuccess: (data) => {
-                                const billText = `Hi ${apt.name},\n\nHere is your bill for ${apt.service} at Apollo Information Centre.\n\n*Bill ID:* #${data.bill.id}\n*Total Amount:* ₹${data.bill.total}\n*Status:* ${data.bill.status === "paid" ? "PAID ✅" : "PENDING ⏳"}\n\nThank you!`;
-                                window.open(
-                                  `https://wa.me/${apt.phone.replace(/\D/g, "")}?text=${encodeURIComponent(billText)}`,
-                                  "_blank"
-                                );
+                                toast.success("Bill generated successfully!");
+                                const statusText = apt.paymentStatus === "paid" ? "Paid" : "Pending Payment";
+                                const payId = apt.paymentStatus === "paid" ? `pay_${Date.now()}` : `clinic_${Date.now()}`;
+                                const formattedDate = apt.preferredDate ? format(new Date(apt.preferredDate), "dd/MM/yyyy") : format(new Date(), "dd/MM/yyyy");
+                                
+                                const receiptUrl = `${getBaseUrl()}/api/receipts/pdf?paymentId=${payId}&amount=${price}&phone=${apt.phone}&patientName=${encodeURIComponent(apt.name)}&service=${encodeURIComponent(apt.service)}&date=${encodeURIComponent(formattedDate)}&status=${encodeURIComponent(statusText)}`;
+                                
+                                window.open(receiptUrl, "_blank");
                               },
                             }
                           );
