@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { LogOut, Plus, Settings, Shield } from "lucide-react";
+import { LogOut, Loader2, Plus, Settings, Shield } from "lucide-react";
 import { BackupRestore } from "@/components/BackupRestore";
 import { ActivityLogView } from "@/components/ActivityLogView";
 import { WhatsAppTemplates } from "@/components/WhatsAppTemplates";
@@ -30,7 +30,7 @@ const FEATURE_LABELS: Record<string, string> = {
 const DEV_ONLY_FEATURES = ["backup_restore", "activity_log", "whatsapp_templates"];
 
 export default function Dev() {
-  const { user, isLoading, logout, refresh } = useAuth();
+  const { user, isLoading, logout } = useAuth();
   const navigate = useNavigate();
   const utils = trpc.useUtils();
   

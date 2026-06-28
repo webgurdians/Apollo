@@ -269,6 +269,74 @@ try {
   console.error("Failed to patch developer and admin accounts:", e);
 }
 
+// Seed default OCC tables (Tenants, Feature Flags, and Killswitches) safely on every boot
+try {
+  const occDb = getDb().$client;
+  const now = Date.now();
+
+  // 1. Seed default Tenant
+  occDb.prepare(`
+    INSERT INTO tenants (id, name, subdomain, status, createdAt, updatedAt)
+    VALUES ('apollo-aranghata', 'Apollo Information Centre Aranghata', 'capollo', 'active', ?, ?)
+    ON CONFLICT(id) DO NOTHING
+  `).run(now, now);
+
+  // 2. Seed default Tenant Settings
+  const defaultSettings = [
+    { key: "clinic_name", value: "Apollo Information Centre Aranghata" },
+    { key: "clinic_phone", value: "+917699933383" },
+    { key: "timezone", value: "Asia/Kolkata" }
+  ];
+  for (const setting of defaultSettings) {
+    const settingId = `setting_${setting.key}`;
+    occDb.prepare(`
+      INSERT INTO tenant_settings (id, tenantId, key, value, updatedAt)
+      VALUES (?, 'apollo-aranghata', ?, ?, ?)
+      ON CONFLICT(id) DO NOTHING
+    `).run(settingId, setting.key, setting.value, now);
+  }
+
+  // 3. Seed default Feature Flags (Core = enabled, Experimental = disabled)
+  const defaultFlags = [
+    { key: "appointments", name: "Appointments Management", category: "core", enabled: 1 },
+    { key: "billing", name: "Billing & Invoicing", category: "core", enabled: 1 },
+    { key: "doctors", name: "Doctors Availability", category: "core", enabled: 1 },
+    { key: "whatsapp", name: "WhatsApp Automation", category: "integration", enabled: 0 },
+    { key: "diagnostics", name: "Diagnostics Panel", category: "addon", enabled: 0 },
+    { key: "online_consultation", name: "Online Consultations", category: "addon", enabled: 0 },
+    { key: "ai_receptionist", name: "AI Receptionist", category: "addon", enabled: 0 },
+    { key: "reviews", name: "Patient Reviews", category: "addon", enabled: 0 }
+  ];
+  for (const flag of defaultFlags) {
+    const flagId = `flag_${flag.key}`;
+    occDb.prepare(`
+      INSERT INTO feature_flags (id, tenantId, key, name, category, description, enabled, rolloutPercentage, updatedAt)
+      VALUES (?, 'apollo-aranghata', ?, ?, ?, '', ?, 100, ?)
+      ON CONFLICT(id) DO NOTHING
+    `).run(flagId, flag.key, flag.name, flag.category, flag.enabled, now);
+  }
+
+  // 4. Seed default Emergency Killswitches
+  const defaultKillswitches = [
+    { key: "disable_bookings", name: "Disable Bookings" },
+    { key: "disable_payments", name: "Disable Payments" },
+    { key: "disable_whatsapp", name: "Disable WhatsApp Send" },
+    { key: "disable_doctor_portal", name: "Lock Doctor Portal" },
+    { key: "maintenance_mode", name: "Enable Maintenance Mode" }
+  ];
+  for (const sw of defaultKillswitches) {
+    occDb.prepare(`
+      INSERT INTO emergency_killswitches (key, name, active, triggeredBy, triggeredAt)
+      VALUES (?, ?, 0, 'system', ?)
+      ON CONFLICT(key) DO NOTHING
+    `).run(sw.key, sw.name, now);
+  }
+
+  logInfo("OCC default tenants, feature flags, and killswitches seeded/checked successfully.");
+} catch (e) {
+  logError("Failed to seed OCC default tables:", e);
+}
+
 // One-time fix: if doctors table is empty but users exist, re-run seeding to populate doctors
 // This handles the case where admin was seeded but doctors failed due to a placeholder mismatch bug
 try {

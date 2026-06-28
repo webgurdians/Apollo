@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router'
 import { useAuth } from './hooks/useAuth'
 import Home from './pages/Home'
 import Dev from './pages/Dev'
+import Ops from './pages/Ops'
 import BookAppointment from './pages/BookAppointment'
 import Admin from './pages/Admin'
 import FrontDesk from './pages/FrontDesk'
@@ -54,6 +55,7 @@ export default function App() {
         <Route path="/book-appointment" element={<BookAppointment />} />
         <Route path="/admin" element={<ProtectedRoute path="/admin"><Admin /></ProtectedRoute>} />
         <Route path="/dev" element={<Dev />} />
+        <Route path="/ops" element={<Ops />} />
         <Route path="/front-desk" element={<ProtectedRoute path="/front-desk"><FrontDesk /></ProtectedRoute>} />
         <Route path="/login" element={<Login />} />
         <Route path="/doctor" element={<ProtectedRoute path="/doctor"><Doctor /></ProtectedRoute>} />

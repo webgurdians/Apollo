@@ -48,3 +48,4 @@ export const pharmacyQuery = authedQuery.use(requireRole(["founder", "admin", "p
 export const diagnosticsQuery = authedQuery.use(requireRole(["founder", "admin", "diagnostics"]));
 export const billingQuery = authedQuery.use(requireRole(["founder", "admin", "front_desk"]));
 export const founderQuery = authedQuery.use(requireRole(["founder"]));
+export const founderMutation = founderQuery;

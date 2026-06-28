@@ -9,6 +9,7 @@ import { activityRouter } from "./activity-router";
 import { medicineOrdersRouter } from "./medicine-orders-router";
 import { reportsRouter } from "./reports-router";
 import { featuresRouter } from "./features-router";
+import { opsRouter } from "./ops-router";
 import { createRouter, publicQuery } from "./middleware";
 
 export const appRouter = createRouter({
@@ -25,6 +26,7 @@ export const appRouter = createRouter({
   medicineOrders: medicineOrdersRouter,
   reports: reportsRouter,
   features: featuresRouter,
+  ops: opsRouter,
 });
 
 export type AppRouter = typeof appRouter;

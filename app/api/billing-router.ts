@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { createRouter, publicQuery, billingQuery } from "./middleware";
 import { getDb } from "./queries/connection";
-import { bills, appointments, medicineOrders, patients } from "@db/schema";
+import { bills, appointments, medicineOrders, patients, emergencyKillswitches } from "@db/schema";
 import { eq, desc, and, isNull } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { logActivity } from "./lib/activity";
@@ -58,6 +58,19 @@ export const billingRouter = createRouter({
     )
     .mutation(async ({ input, ctx }) => {
       const db = getDb();
+
+      const killswitch = await db
+        .select()
+        .from(emergencyKillswitches)
+        .where(eq(emergencyKillswitches.key, "disable_payments"))
+        .limit(1);
+
+      if (killswitch.length > 0 && killswitch[0].active) {
+        throw new TRPCError({ 
+          code: "PRECONDITION_FAILED", 
+          message: "Payments are temporarily disabled by developer operations" 
+        });
+      }
 
       const apts = await db.select().from(appointments).where(eq(appointments.id, input.appointmentId));
       if (!apts.length) {

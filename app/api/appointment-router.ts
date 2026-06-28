@@ -1,13 +1,13 @@
 import { z } from "zod";
-import type { BetterSQLite3Database } from "drizzle-orm/better-sqlite3";
 import { createRouter, publicQuery, staffQuery, clinicStaffQuery } from "./middleware";
 import { getDb } from "./queries/connection";
-import { appointments, contacts, doctors, bills, patients } from "@db/schema";
+import { appointments, contacts, doctors, bills, patients, emergencyKillswitches } from "@db/schema";
 import { eq, desc, and, isNull } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { logActivity } from "./lib/activity";
 import { sendWhatsAppPrescription } from "./lib/whatsapp";
-type DrizzleDB = BetterSQLite3Database<Record<string, never>>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type DrizzleDB = ReturnType<typeof getDb>;
 type AppointmentRow = {
   id: number;
   preferredDate: Date;
@@ -134,6 +134,19 @@ export const appointmentRouter = createRouter({
     .input(createAppointmentInput)
     .mutation(async ({ input, ctx }) => {
       const db = getDb();
+
+      const killswitch = await db
+        .select()
+        .from(emergencyKillswitches)
+        .where(eq(emergencyKillswitches.key, "disable_bookings"))
+        .limit(1);
+
+      if (killswitch.length > 0 && killswitch[0].active) {
+        throw new TRPCError({ 
+          code: "PRECONDITION_FAILED", 
+          message: "Appointments booking is temporarily disabled by developer operations" 
+        });
+      }
 
       // Look up doctor if service matches doctor's serviceName
       let doctorId: number | null = input.doctorId || null;
