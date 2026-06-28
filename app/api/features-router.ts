@@ -1,20 +1,23 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { createRouter, founderQuery } from "./middleware";
+import { createRouter, founderQuery, authedQuery } from "./middleware";
 import { getDb } from "./queries/connection";
-import { settings } from "../db/schema";
+import { settings, featureFlags } from "../db/schema";
 import { eq } from "drizzle-orm";
 
 export const featuresRouter = createRouter({
-  list: founderQuery.query(async () => {
+  list: authedQuery.query(async () => {
     const db = getDb();
-    const rows = await db.select().from(settings).where(eq(settings.key, "features")).limit(1);
-    if (!rows.length) return {};
-    try {
-      return JSON.parse(rows[0].value) as Record<string, boolean>;
-    } catch {
-      return {};
+    const rows = await db
+      .select({ key: featureFlags.key, enabled: featureFlags.enabled })
+      .from(featureFlags)
+      .where(eq(featureFlags.tenantId, "apollo-aranghata"));
+
+    const flags: Record<string, boolean> = {};
+    for (const row of rows) {
+      flags[row.key] = row.enabled;
     }
+    return flags;
   }),
 
   toggle: founderQuery
