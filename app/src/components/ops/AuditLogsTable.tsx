@@ -24,10 +24,19 @@ interface AuditLog {
 interface AuditLogsTableProps {
   logs: AuditLog[] | undefined;
   loading: boolean;
+  error?: any;
 }
 
-export default function AuditLogsTable({ logs, loading }: AuditLogsTableProps) {
+export default function AuditLogsTable({ logs, loading, error }: AuditLogsTableProps) {
   const [search, setSearch] = useState("");
+
+  if (error) {
+    return (
+      <div className="p-4 rounded-xl bg-red-950/20 border border-red-900/30 text-red-400 font-mono text-xs">
+        <span className="font-bold">CRITICAL ERROR QUERYING AUDIT LOGS:</span> {error.message || String(error)}
+      </div>
+    );
+  }
 
   if (loading || !logs) {
     return <div className="text-slate-400 font-mono text-sm">Querying audit logs ledger...</div>;

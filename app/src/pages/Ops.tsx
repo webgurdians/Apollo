@@ -43,20 +43,20 @@ export default function Ops() {
   // OCC Data Queries — only enabled when founder is authenticated
   const isFounder = !!user && user.role === "founder";
 
-  const { data: dashboard, isLoading: dashLoading } = trpc.ops.getOpsDashboard.useQuery(undefined, {
+  const { data: dashboard, isLoading: dashLoading, error: dashError } = trpc.ops.getOpsDashboard.useQuery(undefined, {
     enabled: isFounder,
     refetchInterval: 30000,
   });
 
-  const { data: featureFlags, isLoading: flagsLoading } = trpc.ops.getFeatureFlags.useQuery(undefined, {
+  const { data: featureFlags, isLoading: flagsLoading, error: flagsError } = trpc.ops.getFeatureFlags.useQuery(undefined, {
     enabled: isFounder,
   });
 
-  const { data: killswitches, isLoading: switchesLoading } = trpc.ops.getKillswitches.useQuery(undefined, {
+  const { data: killswitches, isLoading: switchesLoading, error: switchesError } = trpc.ops.getKillswitches.useQuery(undefined, {
     enabled: isFounder,
   });
 
-  const { data: auditLogs, isLoading: auditLoading } = trpc.ops.getAuditLogs.useQuery(undefined, {
+  const { data: auditLogs, isLoading: auditLoading, error: auditError } = trpc.ops.getAuditLogs.useQuery(undefined, {
     enabled: isFounder,
   });
 
@@ -158,13 +158,14 @@ export default function Ops() {
   const renderContent = () => {
     switch (activeTab) {
       case "overview":
-        return <OverviewPanel stats={dashboard} loading={dashLoading} />;
+        return <OverviewPanel stats={dashboard} loading={dashLoading} error={dashError} />;
       case "feature_flags":
         return (
           <FeatureFlagsPanel
             flags={featureFlags}
             onToggle={(id, enabled) => toggleFlagMutation.mutate({ id, enabled })}
             loading={flagsLoading}
+            error={flagsError}
           />
         );
       case "emergency_controls":
@@ -173,10 +174,11 @@ export default function Ops() {
             switches={killswitches}
             onToggle={(key, active) => toggleSwitchMutation.mutate({ key, active })}
             loading={switchesLoading}
+            error={switchesError}
           />
         );
       case "audit_logs":
-        return <AuditLogsTable logs={auditLogs} loading={auditLoading} />;
+        return <AuditLogsTable logs={auditLogs} loading={auditLoading} error={auditError} />;
       default:
         return null;
     }

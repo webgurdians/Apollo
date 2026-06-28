@@ -10,9 +10,18 @@ interface OverviewPanelProps {
     latestRelease: string | null;
   } | undefined;
   loading: boolean;
+  error?: any;
 }
 
-export default function OverviewPanel({ stats, loading }: OverviewPanelProps) {
+export default function OverviewPanel({ stats, loading, error }: OverviewPanelProps) {
+  if (error) {
+    return (
+      <div className="p-4 rounded-xl bg-red-950/20 border border-red-900/30 text-red-400 font-mono text-xs">
+        <span className="font-bold">CRITICAL ERROR QUERYING OCC METRICS:</span> {error.message || String(error)}
+      </div>
+    );
+  }
+
   if (loading || !stats) {
     return <div className="text-slate-400 font-mono text-sm">Loading system metrics...</div>;
   }

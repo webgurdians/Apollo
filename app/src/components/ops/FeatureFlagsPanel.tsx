@@ -16,9 +16,18 @@ interface FeatureFlagsPanelProps {
   flags: FeatureFlag[] | undefined;
   onToggle: (id: string, enabled: boolean) => void;
   loading: boolean;
+  error?: any;
 }
 
-export default function FeatureFlagsPanel({ flags, onToggle, loading }: FeatureFlagsPanelProps) {
+export default function FeatureFlagsPanel({ flags, onToggle, loading, error }: FeatureFlagsPanelProps) {
+  if (error) {
+    return (
+      <div className="p-4 rounded-xl bg-red-950/20 border border-red-900/30 text-red-400 font-mono text-xs">
+        <span className="font-bold">CRITICAL ERROR QUERYING FEATURE FLAGS:</span> {error.message || String(error)}
+      </div>
+    );
+  }
+
   if (loading || !flags) {
     return <div className="text-slate-400 font-mono text-sm">Querying runtime flags ledger...</div>;
   }

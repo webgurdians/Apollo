@@ -14,9 +14,18 @@ interface KillswitchPanelProps {
   switches: Killswitch[] | undefined;
   onToggle: (key: string, active: boolean) => void;
   loading: boolean;
+  error?: any;
 }
 
-export default function KillswitchPanel({ switches, onToggle, loading }: KillswitchPanelProps) {
+export default function KillswitchPanel({ switches, onToggle, loading, error }: KillswitchPanelProps) {
+  if (error) {
+    return (
+      <div className="p-4 rounded-xl bg-red-950/20 border border-red-900/30 text-red-400 font-mono text-xs">
+        <span className="font-bold">CRITICAL ERROR QUERYING KILLSWITCHES:</span> {error.message || String(error)}
+      </div>
+    );
+  }
+
   if (loading || !switches) {
     return <div className="text-slate-400 font-mono text-sm">Querying system killswitches ledger...</div>;
   }
