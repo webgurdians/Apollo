@@ -39,7 +39,7 @@ export default function Dev() {
 
   const loginMutation = trpc.auth.login.useMutation({
     onSuccess: async () => {
-      await refresh();
+      await utils.auth.me.invalidate();
       setLoginError("");
       setPassword("");
     },
