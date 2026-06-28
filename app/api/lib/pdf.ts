@@ -306,9 +306,23 @@ export function generateReceiptPdf(receipt: ReceiptDetails): Promise<Buffer> {
 
     // Total section
     doc.moveTo(50, currentY).lineTo(545, currentY).strokeColor(borderGray).stroke();
-    currentY += 5;
-    doc.fillColor(primaryColor).fontSize(11).font("Helvetica-Bold").text("Total Paid", 60, currentY + 5, { width: 330 });
-    doc.fillColor(primaryColor).fontSize(11).font("Helvetica-Bold").text(`Rs. ${receipt.amount.toFixed(2)}`, 400, currentY + 5, { width: 130, align: "right" });
+    currentY += 10;
+
+    const isPending = receipt.status?.toLowerCase().includes("pending");
+    const amountPaid = isPending ? 0 : receipt.amount;
+    const amountDue = isPending ? receipt.amount : 0;
+
+    doc.fillColor(darkColor).fontSize(9).font("Helvetica-Bold").text("Total Amount:", 300, currentY, { width: 110, align: "right" });
+    doc.fillColor(darkColor).fontSize(9).font("Helvetica").text(`Rs. ${receipt.amount.toFixed(2)}`, 420, currentY, { width: 125, align: "right" });
+    currentY += 15;
+
+    doc.fillColor(darkColor).fontSize(9).font("Helvetica-Bold").text("Amount Paid:", 300, currentY, { width: 110, align: "right" });
+    doc.fillColor(darkColor).fontSize(9).font("Helvetica").text(`Rs. ${amountPaid.toFixed(2)}`, 420, currentY, { width: 125, align: "right" });
+    currentY += 15;
+
+    doc.fillColor(primaryColor).fontSize(10).font("Helvetica-Bold").text("Balance Due:", 300, currentY, { width: 110, align: "right" });
+    doc.fillColor(primaryColor).fontSize(10).font("Helvetica-Bold").text(`Rs. ${amountDue.toFixed(2)}`, 420, currentY, { width: 125, align: "right" });
+    currentY += 15;
 
     // 5. Footer
     doc.y = doc.page.height - 100;
