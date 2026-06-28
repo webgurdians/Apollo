@@ -17,8 +17,7 @@ export function validateRequestOrigin(headers: Headers): { ok: boolean; reason?:
   if (origin) {
     try {
       const originUrl = new URL(origin);
-      const expectedProtocol = isLocalhost(host) ? "http:" : "https:";
-      const matchesHost = originUrl.host === host && originUrl.protocol === expectedProtocol;
+      const matchesHost = originUrl.host === host && (originUrl.protocol === "http:" || originUrl.protocol === "https:");
       const matchesAllowed = env.allowedOrigins.includes(originUrl.origin);
       
       if (!matchesHost && !matchesAllowed) {
@@ -34,8 +33,7 @@ export function validateRequestOrigin(headers: Headers): { ok: boolean; reason?:
   if (referer) {
     try {
       const refererUrl = new URL(referer);
-      const expectedProtocol = isLocalhost(host) ? "http:" : "https:";
-      const matchesHost = refererUrl.host === host && refererUrl.protocol === expectedProtocol;
+      const matchesHost = refererUrl.host === host && (refererUrl.protocol === "http:" || refererUrl.protocol === "https:");
       const matchesAllowed = env.allowedOrigins.includes(refererUrl.origin);
       
       if (!matchesHost && !matchesAllowed) {
