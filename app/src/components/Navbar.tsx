@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router";
+import { useNavigate, useLocation, Link } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Menu, X, Phone, MessageCircle, Calendar } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -50,7 +50,9 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <div className="flex items-center">
-            <img src="/images/logo.png" alt="Apollo Information Centre Aranghata" className="h-11 w-auto object-contain" />
+            <Link to="/">
+              <img src="/images/logo.png" alt="Apollo Information Centre Aranghata" className="h-11 w-auto object-contain cursor-pointer" />
+            </Link>
           </div>
 
           {/* Desktop Nav */}

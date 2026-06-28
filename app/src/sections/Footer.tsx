@@ -1,5 +1,6 @@
 import { Phone, MessageCircle, MapPin } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { Link } from "react-router";
 
 export default function Footer() {
   const { t } = useTranslation();
@@ -10,8 +11,10 @@ export default function Footer() {
         <div className="grid md:grid-cols-3 gap-8 mb-8">
           {/* Brand */}
           <div className="space-y-4">
-            <div className="bg-white p-2 rounded-xl inline-block">
-              <img src="/images/logo.png" alt="Apollo Information Centre Aranghata" className="h-12 w-auto object-contain" />
+            <div className="bg-white p-2 rounded-xl inline-block cursor-pointer">
+              <Link to="/">
+                <img src="/images/logo.png" alt="Apollo Information Centre Aranghata" className="h-12 w-auto object-contain" />
+              </Link>
             </div>
             <p className="text-sm text-white/70 leading-relaxed">
               {t("footer.description")}
