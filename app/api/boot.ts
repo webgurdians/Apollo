@@ -81,7 +81,7 @@ try {
     const userCount = (checkDb.$client.prepare("SELECT COUNT(*) as count FROM users").get() as { count: number })?.count ?? 0;
     if (userCount <= 2) {
       // Fresh DB with only admin + possibly frontdesk — safe to re-seed
-      checkDb.$client.prepare("DELETE FROM users WHERE role IN ('doctor', 'front_desk')").run();
+      checkDb.$client.prepare("DELETE FROM users").run();
       checkDb.$client.prepare("DELETE FROM doctors").run();
     }
   }
