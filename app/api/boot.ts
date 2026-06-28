@@ -69,6 +69,24 @@ try {
   fixDb.$client.prepare(`UPDATE users SET role = 'founder' WHERE username = 'admin' AND role != 'founder'`).run();
 } catch {}
 
+// One-time fix: if doctors table is empty but users exist, re-run seeding to populate doctors
+// This handles the case where admin was seeded but doctors failed due to a placeholder mismatch bug
+try {
+  const checkDb = getDb();
+  const doctorCount = (checkDb.$client.prepare("SELECT COUNT(*) as count FROM doctors").get() as { count: number })?.count ?? 0;
+  if (doctorCount === 0) {
+    logInfo("Doctors table is empty — forcing re-seed of doctors and staff...");
+    // Temporarily clear users so runSeeding() will re-seed everything
+    // But only if users only has the admin (no real data yet)
+    const userCount = (checkDb.$client.prepare("SELECT COUNT(*) as count FROM users").get() as { count: number })?.count ?? 0;
+    if (userCount <= 2) {
+      // Fresh DB with only admin + possibly frontdesk — safe to re-seed
+      checkDb.$client.prepare("DELETE FROM users WHERE role IN ('doctor', 'front_desk')").run();
+      checkDb.$client.prepare("DELETE FROM doctors").run();
+    }
+  }
+} catch {}
+
 
 // Auto-seed admin user + doctors on fresh database
 function hashPassword(password: string): string {
@@ -117,7 +135,7 @@ export function runSeeding() {
       seedDb.prepare(`
         INSERT INTO doctors (name, credentials, specialty, registrationNumber, userId, serviceName, branch, image, fees, availability, status)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(doc.name, doc.credentials, doc.specialty, doc.reg, userRow.id, doc.serviceName, doc.branch, doc.img, doc.fees, doc.availability, "Available", now, now);
+      `).run(doc.name, doc.credentials, doc.specialty, doc.reg, userRow.id, doc.serviceName, doc.branch, doc.img, doc.fees, doc.availability, "Available");
     }
 
     seedDb.prepare(`
