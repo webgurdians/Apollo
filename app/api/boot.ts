@@ -243,11 +243,31 @@ try {
   }
 }
 
-// Ensure existing admin user has founder role (one-time fix for DBs seeded before founder role existed)
+// Ensure existing admin user has 'admin' role (since they are the clinic owner)
+// and create a separate 'developer' user with the 'founder' role for the developer.
 try {
-  const fixDb = getDb();
-  fixDb.$client.prepare(`UPDATE users SET role = 'founder' WHERE username = 'admin' AND role != 'founder'`).run();
-} catch {}
+  const fixDb = getDb().$client;
+  
+  // 1. Downgrade admin to 'admin'
+  fixDb.prepare(`UPDATE users SET role = 'admin' WHERE username = 'admin'`).run();
+  
+  // 2. Ensure developer user exists with 'founder' role
+  const devExists = fixDb.prepare("SELECT COUNT(*) as count FROM users WHERE username = 'developer'").get() as { count: number };
+  if (devExists.count === 0) {
+    const now = Date.now();
+    const devPass = process.env.SEED_DEV_PASSWORD || "dev123";
+    const salt = crypto.randomBytes(16).toString("hex");
+    const hash = crypto.scryptSync(devPass, salt, 64).toString("hex");
+    const passwordHash = `${salt}:${hash}`;
+    
+    fixDb.prepare(`
+      INSERT INTO users (username, passwordHash, name, role, createdAt, updatedAt, lastSignInAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run("developer", passwordHash, "Developer", "founder", now, now, now);
+  }
+} catch (e) {
+  console.error("Failed to patch developer and admin accounts:", e);
+}
 
 // One-time fix: if doctors table is empty but users exist, re-run seeding to populate doctors
 // This handles the case where admin was seeded but doctors failed due to a placeholder mismatch bug
@@ -311,8 +331,15 @@ export function runSeeding() {
     seedDb.prepare(`
       INSERT INTO users (username, passwordHash, name, role, createdAt, updatedAt, lastSignInAt)
       VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(seedAdminUser, hashPassword(seedAdminPass), "Super Admin", "founder", now, now, now);
-    console.log(`Seed: created admin user "${seedAdminUser}" (founder role)`);
+    `).run(seedAdminUser, hashPassword(seedAdminPass), "Apollo Owner (Admin)", "admin", now, now, now);
+    console.log(`Seed: created admin user "${seedAdminUser}" (admin role)`);
+
+    const devPass = process.env.SEED_DEV_PASSWORD || "dev123";
+    seedDb.prepare(`
+      INSERT INTO users (username, passwordHash, name, role, createdAt, updatedAt, lastSignInAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run("developer", hashPassword(devPass), "Developer", "founder", now, now, now);
+    console.log("Seed: created developer user (founder role)");
 
     const pass = "apollo123";
     const doctors = [
