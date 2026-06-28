@@ -83,7 +83,29 @@ try {
       // Fresh DB with only admin + possibly frontdesk — safe to re-seed
       checkDb.$client.prepare("DELETE FROM users").run();
       checkDb.$client.prepare("DELETE FROM doctors").run();
+      checkDb.$client.prepare("DELETE FROM patients").run();
     }
+  }
+} catch {}
+
+// One-time fix: if patients table is empty, seed default patients so they are searchable for uploads
+try {
+  const checkDb = getDb();
+  const patientCount = (checkDb.$client.prepare("SELECT COUNT(*) as count FROM patients").get() as { count: number })?.count ?? 0;
+  if (patientCount === 0) {
+    const now = Date.now();
+    const samplePatients = [
+      { name: "Bijoy Sen", age: 45, gender: "Male", phone: "9876543210", concern: "Fever and cough" },
+      { name: "Ananya Roy", age: 30, gender: "Female", phone: "9876543211", concern: "Routine checkup" },
+      { name: "Rahul Das", age: 12, gender: "Male", phone: "9876543212", concern: "Ear pain" }
+    ];
+    for (const pat of samplePatients) {
+      checkDb.$client.prepare(`
+        INSERT INTO patients (name, age, gender, phone, concern, status, createdAt, updatedAt)
+        VALUES (?, ?, ?, ?, ?, 'waiting', ?, ?)
+      `).run(pat.name, pat.age, pat.gender, pat.phone, pat.concern, now, now);
+    }
+    logInfo(`Seed: patched database with ${samplePatients.length} sample patients`);
   }
 } catch {}
 
@@ -143,6 +165,21 @@ export function runSeeding() {
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `).run("frontdesk", hashPassword("front123"), "Front Desk Staff", "front_desk", now, now, now);
     console.log('Seed: created front_desk user "frontdesk"');
+
+    // Seed some default/sample patients to test with
+    const samplePatients = [
+      { name: "Bijoy Sen", age: 45, gender: "Male", phone: "9876543210", concern: "Fever and cough" },
+      { name: "Ananya Roy", age: 30, gender: "Female", phone: "9876543211", concern: "Routine checkup" },
+      { name: "Rahul Das", age: 12, gender: "Male", phone: "9876543212", concern: "Ear pain" }
+    ];
+
+    for (const pat of samplePatients) {
+      seedDb.prepare(`
+        INSERT INTO patients (name, age, gender, phone, concern, status, createdAt, updatedAt)
+        VALUES (?, ?, ?, ?, ?, 'waiting', ?, ?)
+      `).run(pat.name, pat.age, pat.gender, pat.phone, pat.concern, now, now);
+    }
+    console.log(`Seed: created ${samplePatients.length} sample patients`);
 
     console.log(`Seed: created ${doctors.length} doctor accounts`);
 
