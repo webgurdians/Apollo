@@ -132,7 +132,7 @@ async function ensureBillCreated(db: DrizzleDB, appointmentId: number, paymentMe
 export const appointmentRouter = createRouter({
   create: publicQuery
     .input(createAppointmentInput)
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = getDb();
 
       // Look up doctor if service matches doctor's serviceName
@@ -267,7 +267,9 @@ export const appointmentRouter = createRouter({
         const paymentStatusText = isPaid ? "Paid" : "Pending Payment";
         const formattedDate = preferredDate.toLocaleDateString();
 
-        const receiptUrl = `https://capollo.co.in/api/receipts/pdf?paymentId=${payId}&amount=${price}&phone=${input.phone}&patientName=${encodeURIComponent(input.name)}&service=${encodeURIComponent(input.service)}&date=${encodeURIComponent(formattedDate)}&status=${encodeURIComponent(paymentStatusText)}`;
+        const requestUrl = new URL(ctx.req.url);
+        const backendOrigin = requestUrl.origin;
+        const receiptUrl = `${backendOrigin}/api/receipts/pdf?paymentId=${payId}&amount=${price}&phone=${input.phone}&patientName=${encodeURIComponent(input.name)}&service=${encodeURIComponent(input.service)}&date=${encodeURIComponent(formattedDate)}&status=${encodeURIComponent(paymentStatusText)}`;
 
         const whatsappMsg = `*APOLLO CLINIC PAYMENT RECEIPT*\n\nDear ${input.name},\nThank you for booking your appointment at Apollo Clinic.\n\n*Service:* ${input.service}\n*Date:* ${formattedDate}\n*Amount:* Rs. ${price}\n*Payment Status:* ${paymentStatusText}\n\nYou can view and download your digital payment receipt here:\n${receiptUrl}\n\nThank you for choosing Apollo Clinic!`;
 

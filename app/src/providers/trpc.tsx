@@ -7,7 +7,7 @@ import type { ReactNode } from "react";
 
 export const trpc = createTRPCReact<AppRouter>();
 
-const getBaseUrl = () => {
+export const getBaseUrl = () => {
   let url = import.meta.env.VITE_API_URL;
   if (url) {
     url = url.trim().replace(/\/$/, "");

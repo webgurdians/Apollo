@@ -16,7 +16,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { trpc } from "@/providers/trpc";
+import { trpc, getBaseUrl } from "@/providers/trpc";
 import { loadRazorpayScript } from "@/lib/razorpay";
 import {
   CalendarIcon,
@@ -149,7 +149,7 @@ export default function AppointmentForm({
   const downloadReceipt = async () => {
     if (!bookingDetails) return;
     try {
-      const response = await fetch("/api/generate-receipt-pdf", {
+      const response = await fetch(`${getBaseUrl()}/api/generate-receipt-pdf`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
