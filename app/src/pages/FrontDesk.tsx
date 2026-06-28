@@ -40,6 +40,8 @@ import {
   Users,
   Shield,
   ShoppingBag,
+  Mail,
+  Stethoscope,
 } from "lucide-react";
 import { Link } from "react-router";
 import { format } from "date-fns";
@@ -50,6 +52,8 @@ import PrescriptionDialog from "@/components/dashboard/PrescriptionDialog";
 import { type BillRow, loadRazorpayScript } from "@/lib/razorpay";
 import { FeaturedDoctorPopupConfig } from "@/components/FeaturedDoctorPopupConfig";
 import MedicineOrdersSection from "@/components/dashboard/MedicineOrdersSection";
+import { ContactsSection } from "@/components/dashboard/ContactsSection";
+import { DoctorsSection } from "@/components/dashboard/DoctorsSection";
 
 const RAZORPAY_KEY = import.meta.env.VITE_RAZORPAY_KEY_ID || "";
 
@@ -268,6 +272,14 @@ export default function FrontDesk() {
             <TabsTrigger value="medicine_orders" className="flex items-center gap-1.5">
               <ShoppingBag className="w-4 h-4" />
               Medicine Orders
+            </TabsTrigger>
+            <TabsTrigger value="enquiries" className="flex items-center gap-1.5">
+              <Mail className="w-4 h-4" />
+              Enquiries
+            </TabsTrigger>
+            <TabsTrigger value="doctors" className="flex items-center gap-1.5">
+              <Stethoscope className="w-4 h-4" />
+              Doctors
             </TabsTrigger>
             <TabsTrigger value="settings" className="flex items-center gap-1.5">
               <Shield className="w-4 h-4" />
@@ -695,6 +707,12 @@ export default function FrontDesk() {
           )}
           <TabsContent value="medicine_orders">
             <MedicineOrdersSection />
+          </TabsContent>
+          <TabsContent value="enquiries">
+            <ContactsSection />
+          </TabsContent>
+          <TabsContent value="doctors">
+            <DoctorsSection />
           </TabsContent>
           <TabsContent value="settings">
             <div className="max-w-xl">
