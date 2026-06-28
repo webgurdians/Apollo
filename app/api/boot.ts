@@ -468,6 +468,10 @@ app.use("/api/*", cors({
 // CSRF protection for state-changing requests
 const CSRF_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 app.use("/api/*", async (c, next) => {
+  if (c.req.path === "/api/generate-receipt-pdf") {
+    await next();
+    return;
+  }
   if (CSRF_METHODS.has(c.req.method)) {
     const result = validateRequestOrigin(c.req.raw.headers);
     if (!result.ok) {
