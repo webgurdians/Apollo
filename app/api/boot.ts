@@ -43,23 +43,192 @@ try {
   logInfo("Database migrations applied successfully.");
 } catch (error) {
   logError("Failed to run database migrations:", error);
+  // Do NOT delete the database! Just run the manual schema fallback creation
+  // to ensure all tables exist, keeping existing data safe.
   try {
-    const fs = await import("fs");
-    const dbPath = path.resolve(process.cwd(), getDatabasePath());
-    if (fs.existsSync(dbPath)) {
-      logInfo("Removing corrupted or mismatched database file:", dbPath);
-      fs.unlinkSync(dbPath);
-      // Reset connection instance cache
-      resetDbConnection();
-      // Re-run migrations on fresh database
-      const freshDb = getDb();
-      migrate(freshDb, { migrationsFolder: path.resolve(__dirname, "../db/migrations") });
-      logInfo("Fresh database initialized and migrated successfully.");
-      // Seed the fresh database
-      runSeeding();
-    }
-  } catch (retryError) {
-    logError("Failed to recover database:", retryError);
+    logInfo("Running database schema manual fallback...");
+    const db = getDb();
+    const sqlite = db.$client;
+    
+    sqlite.exec(`
+      CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT NOT NULL UNIQUE,
+        passwordHash TEXT NOT NULL,
+        name TEXT,
+        email TEXT,
+        avatar TEXT,
+        role TEXT DEFAULT 'user' NOT NULL,
+        createdAt INTEGER NOT NULL,
+        updatedAt INTEGER NOT NULL,
+        lastSignInAt INTEGER NOT NULL,
+        deletedAt INTEGER
+      );
+
+      CREATE TABLE IF NOT EXISTS doctors (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        credentials TEXT NOT NULL,
+        specialty TEXT NOT NULL,
+        registrationNumber TEXT NOT NULL,
+        signatureImageUrl TEXT,
+        userId INTEGER NOT NULL,
+        serviceName TEXT,
+        branch TEXT,
+        image TEXT,
+        fees INTEGER DEFAULT 1200,
+        availability TEXT,
+        status TEXT DEFAULT 'Available' NOT NULL,
+        availableDates TEXT,
+        deletedAt INTEGER
+      );
+
+      CREATE TABLE IF NOT EXISTS patients (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        age INTEGER NOT NULL,
+        gender TEXT NOT NULL,
+        phone TEXT NOT NULL,
+        concern TEXT NOT NULL,
+        status TEXT DEFAULT 'waiting' NOT NULL,
+        assignedDoctorId INTEGER,
+        deletedAt INTEGER,
+        createdAt INTEGER NOT NULL,
+        updatedAt INTEGER NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS appointments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        phone TEXT NOT NULL,
+        service TEXT NOT NULL,
+        preferredDate INTEGER NOT NULL,
+        message TEXT,
+        status TEXT DEFAULT 'pending' NOT NULL,
+        paymentStatus TEXT DEFAULT 'pending' NOT NULL,
+        startTime INTEGER,
+        endTime INTEGER,
+        doctorId INTEGER,
+        age INTEGER,
+        appointmentNumber INTEGER,
+        amountPaid INTEGER,
+        amountDue INTEGER,
+        deletedAt INTEGER,
+        createdAt INTEGER NOT NULL,
+        updatedAt INTEGER NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS contacts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        phone TEXT NOT NULL,
+        message TEXT NOT NULL,
+        deletedAt INTEGER,
+        createdAt INTEGER NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS prescriptions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        patientId INTEGER NOT NULL,
+        doctorId INTEGER NOT NULL,
+        diagnosisNotes TEXT NOT NULL,
+        pharmacyBillingAmount INTEGER DEFAULT 0 NOT NULL,
+        status TEXT DEFAULT 'draft' NOT NULL,
+        deletedAt INTEGER,
+        createdAt INTEGER NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS prescription_medicines (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        prescriptionId INTEGER NOT NULL,
+        medicineName TEXT NOT NULL,
+        dosage TEXT NOT NULL,
+        frequency TEXT NOT NULL,
+        duration TEXT NOT NULL,
+        instructions TEXT,
+        status TEXT DEFAULT 'pending' NOT NULL,
+        deletedAt INTEGER
+      );
+
+      CREATE TABLE IF NOT EXISTS prescription_tests (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        prescriptionId INTEGER NOT NULL,
+        testName TEXT NOT NULL,
+        notes TEXT,
+        status TEXT DEFAULT 'pending' NOT NULL,
+        deletedAt INTEGER
+      );
+
+      CREATE TABLE IF NOT EXISTS settings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        key TEXT NOT NULL UNIQUE,
+        value TEXT NOT NULL,
+        updatedAt INTEGER NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS bills (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        appointmentId INTEGER,
+        medicineOrderId INTEGER,
+        amount INTEGER NOT NULL,
+        tax INTEGER DEFAULT 0 NOT NULL,
+        discount INTEGER DEFAULT 0 NOT NULL,
+        total INTEGER NOT NULL,
+        status TEXT DEFAULT 'unpaid' NOT NULL,
+        paymentMethod TEXT,
+        correctionNote TEXT,
+        lockedAt INTEGER,
+        createdAt INTEGER NOT NULL,
+        updatedAt INTEGER NOT NULL,
+        deletedAt INTEGER
+      );
+
+      CREATE TABLE IF NOT EXISTS activity_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        userId INTEGER NOT NULL,
+        userName TEXT NOT NULL,
+        userRole TEXT NOT NULL,
+        action TEXT NOT NULL,
+        entity TEXT NOT NULL,
+        entityId INTEGER,
+        details TEXT,
+        createdAt INTEGER NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS patient_reports (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        patientId INTEGER NOT NULL,
+        doctorId INTEGER NOT NULL,
+        uploadedById INTEGER NOT NULL,
+        reportType TEXT NOT NULL,
+        fileUrl TEXT NOT NULL,
+        fileName TEXT NOT NULL,
+        fileType TEXT NOT NULL,
+        status TEXT DEFAULT 'pending' NOT NULL,
+        whatsappSentAt INTEGER,
+        sentAt INTEGER,
+        viewedAt INTEGER,
+        notes TEXT,
+        createdAt INTEGER NOT NULL,
+        updatedAt INTEGER NOT NULL,
+        deletedAt INTEGER
+      );
+
+      CREATE TABLE IF NOT EXISTS medicine_orders (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        patientId INTEGER NOT NULL,
+        items TEXT NOT NULL,
+        totalAmount INTEGER NOT NULL,
+        paymentStatus TEXT DEFAULT 'pending' NOT NULL,
+        deliveryStatus TEXT DEFAULT 'placed' NOT NULL,
+        createdAt INTEGER NOT NULL,
+        updatedAt INTEGER NOT NULL,
+        deletedAt INTEGER
+      );
+    `);
+    logInfo("Manual database schema fallback applied successfully.");
+  } catch (fallbackError) {
+    logError("Manual fallback schema creation failed:", fallbackError);
   }
 }
 
