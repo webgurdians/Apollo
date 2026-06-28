@@ -209,6 +209,23 @@ export function getDb() {
             updatedAt INTEGER NOT NULL
           );
 
+          CREATE TABLE IF NOT EXISTS bills (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            appointmentId INTEGER,
+            medicineOrderId INTEGER,
+            amount INTEGER NOT NULL,
+            tax INTEGER DEFAULT 0 NOT NULL,
+            discount INTEGER DEFAULT 0 NOT NULL,
+            total INTEGER NOT NULL,
+            status TEXT DEFAULT 'unpaid' NOT NULL,
+            paymentMethod TEXT,
+            correctionNote TEXT,
+            lockedAt INTEGER,
+            createdAt INTEGER NOT NULL,
+            updatedAt INTEGER NOT NULL,
+            deletedAt INTEGER
+          );
+
           CREATE TABLE IF NOT EXISTS activity_logs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             userId INTEGER NOT NULL,
@@ -402,6 +419,22 @@ export function getDb() {
             key TEXT NOT NULL UNIQUE,
             value TEXT NOT NULL,
             updatedAt INTEGER NOT NULL
+          );
+          CREATE TABLE IF NOT EXISTS bills (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            appointmentId INTEGER,
+            medicineOrderId INTEGER,
+            amount INTEGER NOT NULL,
+            tax INTEGER DEFAULT 0 NOT NULL,
+            discount INTEGER DEFAULT 0 NOT NULL,
+            total INTEGER NOT NULL,
+            status TEXT DEFAULT 'unpaid' NOT NULL,
+            paymentMethod TEXT,
+            correctionNote TEXT,
+            lockedAt INTEGER,
+            createdAt INTEGER NOT NULL,
+            updatedAt INTEGER NOT NULL,
+            deletedAt INTEGER
           );
           CREATE TABLE IF NOT EXISTS activity_logs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
