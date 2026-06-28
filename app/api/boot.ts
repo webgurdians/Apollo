@@ -6,7 +6,7 @@ import { appRouter } from "./router";
 import { createContext } from "./context";
 import { env } from "./lib/env";
 import { validateRequestOrigin } from "./lib/origin";
-import { getPrescriptionSecureToken, generatePrescriptionPdf } from "./lib/pdf";
+import { getPrescriptionSecureToken, generatePrescriptionPdf, generateReceiptPdf } from "./lib/pdf";
 import { getDb, resetDbConnection } from "./queries/connection";
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 import path from "path";
@@ -368,6 +368,33 @@ app.get("/api/prescriptions/:id/pdf", async (c) => {
 
 // Public health check endpoint for Railway
 app.get("/health", (c) => c.json({ status: "ok" }, 200));
+
+app.post("/api/generate-receipt-pdf", async (c) => {
+  try {
+    const body = await c.req.json();
+    const { paymentId, amount, phone, patientName, service, date } = body;
+
+    if (!paymentId || amount === undefined || !patientName || !service) {
+      return c.json({ error: "Missing required fields" }, 400);
+    }
+
+    const pdfBuffer = await generateReceiptPdf({
+      paymentId,
+      amount: Number(amount),
+      phone: phone || "N/A",
+      patientName,
+      service,
+      date: date || new Date().toLocaleDateString(),
+    });
+
+    c.header("Content-Type", "application/pdf");
+    c.header("Content-Disposition", `attachment; filename="receipt-${paymentId}.pdf"`);
+    return c.body(new Uint8Array(pdfBuffer));
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : "Unknown error";
+    return c.json({ error: "Failed to generate receipt PDF: " + errMsg }, 500);
+  }
+});
 
 app.get("/api/debug-db", async (c) => {
   const fs = await import("fs");

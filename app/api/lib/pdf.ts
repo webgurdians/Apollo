@@ -196,3 +196,125 @@ export function generatePrescriptionPdf(prescription: PrescriptionDetails): Prom
     doc.end();
   });
 }
+
+interface ReceiptDetails {
+  paymentId: string;
+  amount: number;
+  phone: string;
+  patientName: string;
+  service: string;
+  date: string;
+}
+
+export function generateReceiptPdf(receipt: ReceiptDetails): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument({ size: "A4", margin: 50 });
+    const chunks: Buffer[] = [];
+
+    doc.on("data", (chunk) => chunks.push(chunk));
+    doc.on("end", () => resolve(Buffer.concat(chunks)));
+    doc.on("error", (err) => reject(err));
+
+    // Colors
+    const primaryColor = "#0284c7"; // Apollo Blue
+    const darkColor = "#0f172a";    // Dark Slate
+    const grayColor = "#475569";    // Slate Gray
+    const lightGray = "#f8fafc";    // Background Light Slate
+    const borderGray = "#cbd5e1";   // Border Slate
+
+    // 1. Apollo Header with Logo
+    let logoPath = path.resolve(__dirname, "../../public/images/logo.png");
+    if (!fs.existsSync(logoPath)) {
+      logoPath = path.resolve(process.cwd(), "public/images/logo.png");
+    }
+    if (!fs.existsSync(logoPath)) {
+      logoPath = path.resolve(process.cwd(), "app/public/images/logo.png");
+    }
+
+    let headerTextX = 50;
+    if (fs.existsSync(logoPath)) {
+      try {
+        doc.image(logoPath, 50, 45, { width: 45 });
+        headerTextX = 105;
+      } catch (err) {
+        console.error("Failed to render logo image in PDFKit:", err);
+      }
+    }
+
+    doc.fillColor(primaryColor).fontSize(20).font("Helvetica-Bold").text("APOLLO CLINIC", headerTextX, 48);
+    doc.fillColor(grayColor).fontSize(9).font("Helvetica").text("Information Centre Aranghata", headerTextX, doc.y);
+
+    const headerY = Math.max(doc.y, 45 + 45);
+
+    // 2. Receipt Label (Right Aligned)
+    doc.fillColor(darkColor).fontSize(14).font("Helvetica-Bold").text("PAYMENT RECEIPT", 250, 50, { align: "right", width: 290 });
+    doc.fillColor(grayColor).fontSize(9).font("Helvetica").text(`Receipt No: ${receipt.paymentId}`, 250, doc.y, { align: "right", width: 290 });
+    doc.text(`Date: ${receipt.date}`, 250, doc.y, { align: "right", width: 290 });
+
+    // Restore X coordinate
+    doc.x = 50;
+    doc.y = Math.max(headerY, doc.y) + 25;
+
+    // Line separator
+    doc.moveTo(50, doc.y).lineTo(545, doc.y).strokeColor(borderGray).stroke();
+    doc.moveDown(1.5);
+
+    // 3. Receipt Details Card (Styled Box)
+    const cardY = doc.y;
+    doc.rect(50, cardY, 495, 50).fill(lightGray);
+    doc.fillColor(darkColor).fontSize(10);
+    
+    // Draw text inside Details box
+    doc.font("Helvetica-Bold").text("Patient Name: ", 60, cardY + 10, { continued: true });
+    doc.font("Helvetica").text(receipt.patientName || "N/A", { continued: true });
+    
+    doc.font("Helvetica-Bold").text("Phone: ", 60, cardY + 28, { continued: true });
+    doc.font("Helvetica").text(receipt.phone || "N/A");
+
+    doc.y = cardY + 70;
+
+    // 4. Receipt Table (Itemized List)
+    doc.fillColor(primaryColor).fontSize(12).font("Helvetica-Bold").text("Receipt Summary", 50, doc.y);
+    doc.moveDown(0.8);
+
+    const tableTop = doc.y;
+    
+    // Header background
+    doc.rect(50, tableTop, 495, 20).fill(lightGray);
+    doc.fillColor(darkColor).fontSize(9).font("Helvetica-Bold");
+
+    // Header labels
+    doc.text("Description / Service", 60, tableTop + 5, { width: 330 });
+    doc.text("Amount (INR)", 400, tableTop + 5, { width: 130, align: "right" });
+
+    let currentY = tableTop + 20;
+    doc.font("Helvetica").fontSize(9);
+
+    // Draw row borders
+    doc.moveTo(50, currentY).lineTo(545, currentY).strokeColor("#f1f5f9").stroke();
+
+    // Row contents
+    doc.fillColor(darkColor).font("Helvetica-Bold").text(receipt.service || "Clinic Appointment", 60, currentY + 8, { width: 330 });
+    doc.fillColor(darkColor).font("Helvetica-Bold").text(`Rs. ${receipt.amount.toFixed(2)}`, 400, currentY + 8, { width: 130, align: "right" });
+
+    currentY += 30;
+
+    // Total section
+    doc.moveTo(50, currentY).lineTo(545, currentY).strokeColor(borderGray).stroke();
+    currentY += 5;
+    doc.fillColor(primaryColor).fontSize(11).font("Helvetica-Bold").text("Total Paid", 60, currentY + 5, { width: 330 });
+    doc.fillColor(primaryColor).fontSize(11).font("Helvetica-Bold").text(`Rs. ${receipt.amount.toFixed(2)}`, 400, currentY + 5, { width: 130, align: "right" });
+
+    // 5. Footer
+    doc.y = doc.page.height - 100;
+    doc.moveTo(50, doc.y).lineTo(545, doc.y).strokeColor(borderGray).stroke();
+    doc.moveDown(1.5);
+    doc.fillColor("#94a3b8").fontSize(8).font("Helvetica").text(
+      "Thank you for choosing Apollo Clinic. This is an official digitally generated payment receipt.",
+      { align: "center", width: 495 }
+    );
+
+    doc.end();
+  });
+}
+

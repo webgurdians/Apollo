@@ -148,7 +148,7 @@ export default function AppointmentForm({
   const downloadReceipt = async () => {
     if (!bookingDetails) return;
     try {
-      const response = await fetch("http://localhost:4000/generate-pdf", {
+      const response = await fetch("/api/generate-receipt-pdf", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -169,7 +169,7 @@ export default function AppointmentForm({
       window.URL.revokeObjectURL(url);
     } catch (err) {
       console.error(err);
-      alert("Error downloading receipt. Make sure the receipt service is running on port 4000.");
+      alert("Error downloading receipt. Please try again.");
     }
   };
 
