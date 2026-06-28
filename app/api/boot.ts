@@ -160,7 +160,7 @@ export function runSeeding() {
       doctors: true,
       end_of_day_report: true,
       featured_doctor: true,
-      report_dispatch: false,
+      report_dispatch: true,
       global_search: true,
     }), now);
 
@@ -184,10 +184,19 @@ export function runSeeding() {
         doctors: true,
         end_of_day_report: true,
         featured_doctor: true,
-        report_dispatch: false,
+        report_dispatch: true,
         global_search: true,
       }), Date.now());
       console.log("Seed: created default feature flags (existing users, no flags)");
+    } else if (existingFlags.value) {
+      try {
+        const parsed = JSON.parse(existingFlags.value);
+        if (parsed.report_dispatch === false) {
+          parsed.report_dispatch = true;
+          seedDb.prepare("UPDATE settings SET value = ?, updatedAt = ? WHERE key = 'features'").run(JSON.stringify(parsed), Date.now());
+          console.log("Seed: patched existing feature flags to enable report_dispatch");
+        }
+      } catch (e) {}
     }
     const nullImages = seedDb.prepare("SELECT id, name FROM doctors WHERE image IS NULL OR image = ''").all() as { id: number; name: string }[];
     for (const doc of nullImages) {
