@@ -16,6 +16,7 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/db/migrations ./db/migrations
+COPY --from=build /app/public ./public
 COPY package.json ./
 
 # Create persistent data directory (mount a Railway Volume here)
