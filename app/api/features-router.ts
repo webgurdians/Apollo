@@ -1,11 +1,24 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import { createRouter, founderQuery, authedQuery } from "./middleware";
+import { createRouter, founderQuery, authedQuery, publicQuery } from "./middleware";
 import { getDb } from "./queries/connection";
-import { settings, featureFlags } from "../db/schema";
+import { settings, featureFlags, emergencyKillswitches } from "../db/schema";
 import { eq } from "drizzle-orm";
 
 export const featuresRouter = createRouter({
+  isMaintenanceMode: publicQuery.query(async () => {
+    const db = getDb();
+    try {
+      const rows = await db
+        .select({ active: emergencyKillswitches.active })
+        .from(emergencyKillswitches)
+        .where(eq(emergencyKillswitches.key, "maintenance_mode"))
+        .limit(1);
+      return rows[0]?.active === true;
+    } catch {
+      return false;
+    }
+  }),
   list: authedQuery.query(async () => {
     const db = getDb();
     const rows = await db

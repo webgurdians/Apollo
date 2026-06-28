@@ -3,6 +3,10 @@ import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import type { TrpcContext } from "./context";
 
+import { getDb } from "./queries/connection";
+import { emergencyKillswitches } from "../db/schema";
+import { eq } from "drizzle-orm";
+
 const t = initTRPC.context<TrpcContext>().create({
   transformer: superjson,
 });
@@ -18,6 +22,30 @@ const requireAuth = t.middleware(async (opts) => {
       code: "UNAUTHORIZED",
       message: ErrorMessages.unauthenticated,
     });
+  }
+
+  // Founder role bypasses maintenance mode. All other roles are blocked.
+  if (ctx.user.role !== "founder") {
+    try {
+      const db = getDb();
+      const killswitch = await db
+        .select()
+        .from(emergencyKillswitches)
+        .where(eq(emergencyKillswitches.key, "maintenance_mode"))
+        .limit(1);
+
+      if (killswitch.length > 0 && killswitch[0].active) {
+        throw new TRPCError({
+          code: "PRECONDITION_FAILED",
+          message: "Clinic administration is temporarily offline for scheduled developer maintenance.",
+        });
+      }
+    } catch (e) {
+      // Allow boot phase/migrations to complete if tables do not exist yet
+      if (e instanceof Error && !e.message.includes("no such table")) {
+        throw e;
+      }
+    }
   }
 
   return next({ ctx: { ...ctx, user: ctx.user } });
