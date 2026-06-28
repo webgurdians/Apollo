@@ -16,7 +16,7 @@ import { Loader2 } from 'lucide-react'
 
 const ALLOWED_ROLES: Record<string, string[]> = {
   "/admin": ["founder", "admin", "staff", "user"],
-  "/dev": ["founder"],
+
   "/front-desk": ["front_desk", "founder", "admin"],
   "/doctor": ["doctor", "admin"],
   "/pharmacy": ["pharmacy"],
@@ -53,7 +53,7 @@ export default function App() {
         <Route path="/" element={<Home />} />
         <Route path="/book-appointment" element={<BookAppointment />} />
         <Route path="/admin" element={<ProtectedRoute path="/admin"><Admin /></ProtectedRoute>} />
-        <Route path="/dev" element={<ProtectedRoute path="/dev"><Dev /></ProtectedRoute>} />
+        <Route path="/dev" element={<Dev />} />
         <Route path="/front-desk" element={<ProtectedRoute path="/front-desk"><FrontDesk /></ProtectedRoute>} />
         <Route path="/login" element={<Login />} />
         <Route path="/doctor" element={<ProtectedRoute path="/doctor"><Doctor /></ProtectedRoute>} />

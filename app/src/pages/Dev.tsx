@@ -30,15 +30,108 @@ const FEATURE_LABELS: Record<string, string> = {
 const DEV_ONLY_FEATURES = ["backup_restore", "activity_log", "whatsapp_templates"];
 
 export default function Dev() {
-  const { user, logout } = useAuth();
+  const { user, isLoading, logout, refresh } = useAuth();
   const navigate = useNavigate();
   const utils = trpc.useUtils();
-  const { data: flags } = trpc.features.list.useQuery();
+  
+  const [password, setPassword] = useState("");
+  const [loginError, setLoginError] = useState("");
+
+  const loginMutation = trpc.auth.login.useMutation({
+    onSuccess: async () => {
+      await refresh();
+      setLoginError("");
+      setPassword("");
+    },
+    onError: (err) => {
+      setLoginError(err.message || "Invalid Developer credentials");
+    }
+  });
+
+  const handleDevLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    loginMutation.mutate({ username: "developer", password });
+  };
+
+  const { data: flags } = trpc.features.list.useQuery(undefined, {
+    enabled: !!user && user.role === "founder"
+  });
   const toggleMutation = trpc.features.toggle.useMutation({ onSuccess: () => utils.features.list.invalidate() });
   const createMutation = trpc.features.create.useMutation({ onSuccess: () => utils.features.list.invalidate() });
   const [newName, setNewName] = useState("");
   const [newKey, setNewKey] = useState("");
   const [showCreate, setShowCreate] = useState(false);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-950 text-white">
+        <Loader2 className="w-8 h-8 animate-spin text-emerald-400" />
+      </div>
+    );
+  }
+
+  if (!user || user.role !== "founder") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-950 px-4">
+        <Card className="w-full max-w-sm bg-slate-900 border-slate-800 shadow-2xl">
+          <CardHeader className="text-center space-y-3">
+            <div className="w-12 h-12 bg-emerald-950 border border-emerald-500/30 rounded-xl flex items-center justify-center mx-auto shadow-inner">
+              <Shield className="w-6 h-6 text-emerald-400" />
+            </div>
+            <div>
+              <CardTitle className="text-xl text-slate-100 font-mono tracking-tight text-white">Developer Gate</CardTitle>
+              <p className="text-xs text-slate-400 mt-1">
+                Enter developer credentials to unlock god mode
+              </p>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleDevLogin} className="space-y-4">
+              {user && (
+                <div className="p-2.5 rounded-lg bg-red-950/40 border border-red-900/30 text-xs text-red-400 text-center">
+                  Logged in as <span className="font-semibold">{user.username}</span> ({user.role}) is unauthorized.
+                </div>
+              )}
+              {loginError && (
+                <div className="p-2.5 rounded-lg bg-red-950/40 border border-red-900/30 text-xs text-red-400 text-center">
+                  {loginError}
+                </div>
+              )}
+              <div className="space-y-2">
+                <Label htmlFor="dev-password" className="text-slate-300">Developer Password</Label>
+                <Input
+                  id="dev-password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="bg-slate-800 border-slate-700 text-slate-100 placeholder-slate-500 focus-visible:ring-emerald-500"
+                  required
+                />
+              </div>
+              <Button 
+                type="submit" 
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
+                disabled={loginMutation.isPending}
+              >
+                {loginMutation.isPending ? "Unlocking..." : "Verify Identity"}
+              </Button>
+              {user && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => logout()}
+                  className="w-full text-slate-400 hover:text-white text-xs hover:bg-slate-800"
+                >
+                  Logout Current Account
+                </Button>
+              )}
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800">
