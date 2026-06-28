@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useCallback } from "react";
 import { useNavigate } from "react-router";
 import { LOGIN_PATH } from "@/const";
 
@@ -6,15 +6,30 @@ const TIMEOUT_MS = 30 * 60 * 1000;
 const CHECK_INTERVAL_MS = 60 * 1000;
 
 export function useSessionTimeout(onLogout: () => void) {
-  const lastActivity = useRef<number>(0);
   const navigate = useNavigate();
 
   const resetTimer = useCallback(() => {
-    lastActivity.current = Date.now();
+    localStorage.setItem("apollo_last_activity", Date.now().toString());
   }, []);
 
   useEffect(() => {
-    lastActivity.current = Date.now();
+    // Check on initial load if session has timed out while browser was closed
+    const lastActivityStr = localStorage.getItem("apollo_last_activity");
+    if (lastActivityStr) {
+      const lastActivityTime = parseInt(lastActivityStr);
+      if (!isNaN(lastActivityTime)) {
+        const elapsed = Date.now() - lastActivityTime;
+        if (elapsed >= TIMEOUT_MS) {
+          localStorage.removeItem("apollo_last_activity");
+          onLogout();
+          navigate(LOGIN_PATH);
+          return;
+        }
+      }
+    }
+
+    // Set initial activity
+    localStorage.setItem("apollo_last_activity", Date.now().toString());
 
     const events = ["mousedown", "keydown", "scroll", "touchstart", "mousemove"];
     for (const event of events) {
@@ -22,10 +37,17 @@ export function useSessionTimeout(onLogout: () => void) {
     }
 
     const interval = setInterval(() => {
-      const elapsed = Date.now() - lastActivity.current;
-      if (elapsed >= TIMEOUT_MS) {
-        onLogout();
-        navigate(LOGIN_PATH);
+      const lastActivityStr = localStorage.getItem("apollo_last_activity");
+      if (lastActivityStr) {
+        const lastActivityTime = parseInt(lastActivityStr);
+        if (!isNaN(lastActivityTime)) {
+          const elapsed = Date.now() - lastActivityTime;
+          if (elapsed >= TIMEOUT_MS) {
+            localStorage.removeItem("apollo_last_activity");
+            onLogout();
+            navigate(LOGIN_PATH);
+          }
+        }
       }
     }, CHECK_INTERVAL_MS);
 
