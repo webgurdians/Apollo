@@ -54,12 +54,14 @@ import { FeaturedDoctorPopupConfig } from "@/components/FeaturedDoctorPopupConfi
 import MedicineOrdersSection from "@/components/dashboard/MedicineOrdersSection";
 import { ContactsSection } from "@/components/dashboard/ContactsSection";
 import { DoctorsSection } from "@/components/dashboard/DoctorsSection";
+import ReportDispatchSection from "@/components/dashboard/ReportDispatchSection";
 
 const RAZORPAY_KEY = import.meta.env.VITE_RAZORPAY_KEY_ID || "";
 
 export default function FrontDesk() {
   const { user, logout, isLoading: authLoading } = useAuth();
   const { data: stats, isLoading: statsLoading } = trpc.appointment.stats.useQuery();
+  const { data: flags } = trpc.features.list.useQuery();
 
   // Patient queue / history
   const { data: patients } = trpc.patients.list.useQuery();
@@ -273,6 +275,12 @@ export default function FrontDesk() {
               <ShoppingBag className="w-4 h-4" />
               Medicine Orders
             </TabsTrigger>
+            {flags?.report_dispatch !== false && (
+              <TabsTrigger value="report_dispatch" className="flex items-center gap-1.5">
+                <FileText className="w-4 h-4" />
+                Patient Reports
+              </TabsTrigger>
+            )}
             <TabsTrigger value="enquiries" className="flex items-center gap-1.5">
               <Mail className="w-4 h-4" />
               Enquiries
@@ -708,6 +716,11 @@ export default function FrontDesk() {
           <TabsContent value="medicine_orders">
             <MedicineOrdersSection />
           </TabsContent>
+          {flags?.report_dispatch !== false && (
+            <TabsContent value="report_dispatch">
+              <ReportDispatchSection />
+            </TabsContent>
+          )}
           <TabsContent value="enquiries">
             <ContactsSection />
           </TabsContent>
