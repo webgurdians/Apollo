@@ -6,7 +6,7 @@ import { appointments, contacts, doctors, bills, patients } from "@db/schema";
 import { eq, desc, and, isNull } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { logActivity } from "./lib/activity";
-
+import { sendWhatsAppPrescription } from "./lib/whatsapp";
 type DrizzleDB = BetterSQLite3Database<Record<string, never>>;
 type AppointmentRow = {
   id: number;
@@ -251,6 +251,29 @@ export const appointmentRouter = createRouter({
           paymentMethod: "cash",
           lockedAt: new Date(),
         });
+      }
+
+      // Automatically send a WhatsApp message to the customer with their receipt download link
+      try {
+        let price = 500;
+        if (doctorId) {
+          const docRecord = await db.select({ fees: doctors.fees }).from(doctors).where(eq(doctors.id, doctorId)).limit(1);
+          if (docRecord.length > 0 && docRecord[0].fees) {
+            price = docRecord[0].fees;
+          }
+        }
+
+        const payId = isPaid ? `pay_${Date.now()}` : `clinic_${Date.now()}`;
+        const paymentStatusText = isPaid ? "Paid" : "Pending Payment";
+        const formattedDate = preferredDate.toLocaleDateString();
+
+        const receiptUrl = `https://capollo.co.in/api/receipts/pdf?paymentId=${payId}&amount=${price}&phone=${input.phone}&patientName=${encodeURIComponent(input.name)}&service=${encodeURIComponent(input.service)}&date=${encodeURIComponent(formattedDate)}&status=${encodeURIComponent(paymentStatusText)}`;
+
+        const whatsappMsg = `*APOLLO CLINIC PAYMENT RECEIPT*\n\nDear ${input.name},\nThank you for booking your appointment at Apollo Clinic.\n\n*Service:* ${input.service}\n*Date:* ${formattedDate}\n*Amount:* Rs. ${price}\n*Payment Status:* ${paymentStatusText}\n\nYou can view and download your digital payment receipt here:\n${receiptUrl}\n\nThank you for choosing Apollo Clinic!`;
+
+        await sendWhatsAppPrescription(input.phone, whatsappMsg);
+      } catch (err) {
+        console.error("Failed to send WhatsApp booking receipt:", err);
       }
 
       return { success: true };

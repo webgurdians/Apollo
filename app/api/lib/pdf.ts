@@ -204,6 +204,7 @@ interface ReceiptDetails {
   patientName: string;
   service: string;
   date: string;
+  status?: string;
 }
 
 export function generateReceiptPdf(receipt: ReceiptDetails): Promise<Buffer> {
@@ -266,10 +267,17 @@ export function generateReceiptPdf(receipt: ReceiptDetails): Promise<Buffer> {
     
     // Draw text inside Details box
     doc.font("Helvetica-Bold").text("Patient Name: ", 60, cardY + 10, { continued: true });
-    doc.font("Helvetica").text(receipt.patientName || "N/A", { continued: true });
+    doc.font("Helvetica").text(receipt.patientName || "N/A");
     
     doc.font("Helvetica-Bold").text("Phone: ", 60, cardY + 28, { continued: true });
     doc.font("Helvetica").text(receipt.phone || "N/A");
+
+    // Draw Payment Status inside the Details Box (right aligned)
+    doc.font("Helvetica-Bold").text("Payment Status: ", 300, cardY + 10, { continued: true });
+    const paymentStatus = receipt.status || "Pending Payment";
+    const statusColor = paymentStatus.toLowerCase().includes("pending") ? "#b45309" : "#15803d"; // amber-700 vs green-700
+    doc.fillColor(statusColor).text(paymentStatus);
+    doc.fillColor(darkColor); // Restore color
 
     doc.y = cardY + 70;
 

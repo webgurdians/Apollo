@@ -143,6 +143,7 @@ export default function AppointmentForm({
     patientName: string;
     service: string;
     date: string;
+    status: string;
   } | null>(null);
 
   const downloadReceipt = async () => {
@@ -179,6 +180,9 @@ export default function AppointmentForm({
     const selectedService = formServices.find((s) => s.name === serviceName);
     const price = selectedService?.price || 500;
 
+    const isPaid = paymentMethod === "online";
+    const paymentStatusText = isPaid ? "Paid" : "Pending Payment";
+
     setBookingDetails({
       paymentId: payId,
       amount: price,
@@ -186,6 +190,7 @@ export default function AppointmentForm({
       patientName: name.trim(),
       service: serviceName,
       date: date ? format(date, "dd/MM/yyyy") : format(new Date(), "dd/MM/yyyy"),
+      status: paymentStatusText,
     });
 
     // Open WhatsApp to send pending approval message to the clinic (simulating automated messaging with click-to-chat)

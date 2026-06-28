@@ -372,7 +372,7 @@ app.get("/health", (c) => c.json({ status: "ok" }, 200));
 app.post("/api/generate-receipt-pdf", async (c) => {
   try {
     const body = await c.req.json();
-    const { paymentId, amount, phone, patientName, service, date } = body;
+    const { paymentId, amount, phone, patientName, service, date, status } = body;
 
     if (!paymentId || amount === undefined || !patientName || !service) {
       return c.json({ error: "Missing required fields" }, 400);
@@ -385,6 +385,7 @@ app.post("/api/generate-receipt-pdf", async (c) => {
       patientName,
       service,
       date: date || new Date().toLocaleDateString(),
+      status: status || undefined,
     });
 
     c.header("Content-Type", "application/pdf");
@@ -393,6 +394,39 @@ app.post("/api/generate-receipt-pdf", async (c) => {
   } catch (err: unknown) {
     const errMsg = err instanceof Error ? err.message : "Unknown error";
     return c.json({ error: "Failed to generate receipt PDF: " + errMsg }, 500);
+  }
+});
+
+app.get("/api/receipts/pdf", async (c) => {
+  try {
+    const paymentId = c.req.query("paymentId");
+    const amount = c.req.query("amount");
+    const phone = c.req.query("phone");
+    const patientName = c.req.query("patientName");
+    const service = c.req.query("service");
+    const date = c.req.query("date");
+    const status = c.req.query("status");
+
+    if (!paymentId || !amount || !patientName || !service) {
+      return c.text("Missing required fields", 400);
+    }
+
+    const pdfBuffer = await generateReceiptPdf({
+      paymentId,
+      amount: Number(amount),
+      phone: phone || "N/A",
+      patientName,
+      service,
+      date: date || new Date().toLocaleDateString(),
+      status: status || undefined,
+    });
+
+    c.header("Content-Type", "application/pdf");
+    c.header("Content-Disposition", `inline; filename="receipt-${paymentId}.pdf"`);
+    return c.body(new Uint8Array(pdfBuffer));
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : "Unknown error";
+    return c.text("Failed to generate receipt PDF: " + errMsg, 500);
   }
 });
 
