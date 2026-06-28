@@ -302,6 +302,9 @@ app.get("/api/prescriptions/:id/pdf", async (c) => {
   }
 });
 
+// Public health check endpoint for Railway
+app.get("/health", (c) => c.json({ status: "ok" }, 200));
+
 app.get("/api/debug-db", async (c) => {
   const fs = await import("fs");
   const dbPath = path.resolve(process.cwd(), getDatabasePath());
