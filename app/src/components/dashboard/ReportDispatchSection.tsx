@@ -303,7 +303,24 @@ export default function ReportDispatchSection() {
                           {r.fileName}
                         </a>
                       </TableCell>
-                      <TableCell>{statusBadge(r.status)}</TableCell>
+                      <TableCell>
+                        <Select
+                          value={r.status}
+                          onValueChange={(newStatus) => {
+                            updateStatus.mutate({ id: r.id, status: newStatus as any });
+                          }}
+                        >
+                          <SelectTrigger className="w-[120px] h-8 text-xs">
+                            <SelectValue placeholder="Status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="pending">Pending</SelectItem>
+                            <SelectItem value="to_be_sent">To Be Sent</SelectItem>
+                            <SelectItem value="sent">Sent</SelectItem>
+                            <SelectItem value="viewed">Viewed</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
                         {new Date(r.createdAt).toLocaleDateString()}
                       </TableCell>
