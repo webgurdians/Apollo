@@ -325,6 +325,7 @@ export function generateReceiptPdf(receipt: ReceiptDetails): Promise<Buffer> {
     currentY += 15;
 
     // 5. Footer
+    doc.x = 50;
     doc.y = doc.page.height - 100;
     doc.moveTo(50, doc.y).lineTo(545, doc.y).strokeColor(borderGray).stroke();
     doc.moveDown(1.5);
