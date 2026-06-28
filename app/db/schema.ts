@@ -280,3 +280,150 @@ export type InsertPatientReport = typeof patientReports.$inferInsert;
 
 export type Setting = typeof settings.$inferSelect;
 export type InsertSetting = typeof settings.$inferInsert;
+
+// --- OCC Tables ---
+
+export const tenants = sqliteTable("tenants", {
+  id: text("id").primaryKey(), // e.g. "apollo-aranghata"
+  name: text("name").notNull(),
+  subdomain: text("subdomain").unique(),
+  status: text("status", { enum: ["active", "suspended", "maintenance"] }).default("active").notNull(),
+  createdAt: integer("createdAt", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+  updatedAt: integer("updatedAt", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull().$onUpdateFn(() => new Date()),
+});
+
+export const tenantSettings = sqliteTable("tenant_settings", {
+  id: text("id").primaryKey(),
+  tenantId: text("tenantId").references(() => tenants.id, { onDelete: "cascade" }),
+  key: text("key").notNull(),
+  value: text("value"),
+  updatedAt: integer("updatedAt", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull().$onUpdateFn(() => new Date()),
+});
+
+export const featureFlags = sqliteTable("feature_flags", {
+  id: text("id").primaryKey(),
+  tenantId: text("tenantId").references(() => tenants.id, { onDelete: "cascade" }),
+  key: text("key").notNull(),
+  name: text("name").notNull(),
+  category: text("category").notNull(),
+  description: text("description"),
+  enabled: integer("enabled", { mode: "boolean" }).default(false).notNull(),
+  rolloutPercentage: integer("rolloutPercentage").default(100).notNull(),
+  updatedAt: integer("updatedAt", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull().$onUpdateFn(() => new Date()),
+});
+
+export const opsSecrets = sqliteTable("ops_secrets", {
+  id: text("id").primaryKey(),
+  tenantId: text("tenantId").references(() => tenants.id, { onDelete: "cascade" }),
+  provider: text("provider").notNull(),
+  referenceKey: text("referenceKey").notNull(),
+  status: text("status").default("active").notNull(),
+  lastUpdated: integer("lastUpdated", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+});
+
+export const notifications = sqliteTable("notifications", {
+  id: text("id").primaryKey(),
+  channel: text("channel").notNull(),
+  status: text("status").notNull(),
+  recipient: text("recipient"),
+  payload: text("payload"),
+  createdAt: integer("createdAt", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+});
+
+export const founderSessions = sqliteTable("founder_sessions", {
+  id: text("id").primaryKey(),
+  ipAddress: text("ipAddress"),
+  userAgent: text("userAgent"),
+  startedAt: integer("startedAt", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+  endedAt: integer("endedAt", { mode: "timestamp" }),
+});
+
+export const webhookLogs = sqliteTable("webhook_logs", {
+  id: text("id").primaryKey(),
+  provider: text("provider").notNull(),
+  status: text("status").notNull(),
+  requestId: text("requestId").notNull(),
+  response: text("response"),
+  createdAt: integer("createdAt", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+});
+
+export const backgroundJobs = sqliteTable("background_jobs", {
+  id: text("id").primaryKey(),
+  jobType: text("jobType").notNull(),
+  status: text("status").notNull(),
+  attempts: integer("attempts").default(0).notNull(),
+  lastRun: integer("lastRun", { mode: "timestamp" }),
+});
+
+export const entityActivity = sqliteTable("entity_activity", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  entityType: text("entityType").notNull(),
+  entityId: text("entityId").notNull(),
+  action: text("action").notNull(),
+  metadata: text("metadata"),
+  timestamp: integer("timestamp", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+});
+
+export const systemAlerts = sqliteTable("system_alerts", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  type: text("type").notNull(),
+  severity: text("severity", { enum: ["info", "warning", "critical"] }).notNull(),
+  message: text("message").notNull(),
+  timestamp: integer("timestamp", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+});
+
+export const releases = sqliteTable("releases", {
+  id: text("id").primaryKey(),
+  version: text("version").notNull(),
+  gitCommit: text("gitCommit"),
+  notes: text("notes"),
+  deployedAt: integer("deployedAt", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+  deployedBy: text("deployedBy"),
+});
+
+export const emergencyKillswitches = sqliteTable("emergency_killswitches", {
+  key: text("key").primaryKey(),
+  name: text("name").notNull(),
+  active: integer("active", { mode: "boolean" }).default(false).notNull(),
+  triggeredBy: text("triggeredBy").notNull(),
+  triggeredAt: integer("triggeredAt", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+});
+
+export const integrationRegistry = sqliteTable("integration_registry", {
+  id: text("id").primaryKey(),
+  tenantId: text("tenantId").references(() => tenants.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  enabled: integer("enabled", { mode: "boolean" }).default(false).notNull(),
+  healthStatus: text("healthStatus").default("unknown").notNull(),
+  lastSyncAt: integer("lastSyncAt", { mode: "timestamp" }),
+});
+
+export const backups = sqliteTable("backups", {
+  id: text("id").primaryKey(),
+  filename: text("filename").notNull(),
+  sizeBytes: integer("sizeBytes").notNull(),
+  status: text("status").notNull(),
+  storageProvider: text("storageProvider").notNull(),
+  createdAt: integer("createdAt", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+  verifiedAt: integer("verifiedAt", { mode: "timestamp" }),
+});
+
+export const errorLogs = sqliteTable("error_logs", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  severity: text("severity", { enum: ["low", "medium", "high", "critical"] }).notNull(),
+  message: text("message").notNull(),
+  stackTrace: text("stackTrace"),
+  module: text("module").notNull(),
+  status: text("status", { enum: ["unresolved", "resolved", "ignored"] }).default("unresolved").notNull(),
+  timestamp: integer("timestamp", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+});
+
+export const auditLogs = sqliteTable("audit_logs", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  tenantId: text("tenantId").references(() => tenants.id, { onDelete: "cascade" }),
+  username: text("username").notNull(),
+  action: text("action").notNull(),
+  module: text("module").notNull(),
+  metadata: text("metadata"),
+  timestamp: integer("timestamp", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
+});

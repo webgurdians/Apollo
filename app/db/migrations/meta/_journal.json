@@ -64,6 +64,13 @@
       "when": 1782581307955,
       "tag": "0008_cute_nitro",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1782625623691,
+      "tag": "0009_petite_winter_soldier",
+      "breakpoints": true
     }
   ]
 }
