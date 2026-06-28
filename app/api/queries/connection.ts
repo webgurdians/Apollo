@@ -220,6 +220,25 @@ export function getDb() {
             details TEXT,
             createdAt INTEGER NOT NULL
           );
+
+          CREATE TABLE IF NOT EXISTS patient_reports (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            patientId INTEGER NOT NULL,
+            doctorId INTEGER NOT NULL,
+            uploadedById INTEGER NOT NULL,
+            reportType TEXT NOT NULL,
+            fileUrl TEXT NOT NULL,
+            fileName TEXT NOT NULL,
+            fileType TEXT NOT NULL,
+            status TEXT DEFAULT 'pending' NOT NULL,
+            whatsappSentAt INTEGER,
+            sentAt INTEGER,
+            viewedAt INTEGER,
+            notes TEXT,
+            createdAt INTEGER NOT NULL,
+            updatedAt INTEGER NOT NULL,
+            deletedAt INTEGER
+          );
         `);
 
         // Check if medicineOrderId column exists in bills table
@@ -394,6 +413,24 @@ export function getDb() {
             entityId INTEGER,
             details TEXT,
             createdAt INTEGER NOT NULL
+          );
+          CREATE TABLE IF NOT EXISTS patient_reports (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            patientId INTEGER NOT NULL,
+            doctorId INTEGER NOT NULL,
+            uploadedById INTEGER NOT NULL,
+            reportType TEXT NOT NULL,
+            fileUrl TEXT NOT NULL,
+            fileName TEXT NOT NULL,
+            fileType TEXT NOT NULL,
+            status TEXT DEFAULT 'pending' NOT NULL,
+            whatsappSentAt INTEGER,
+            sentAt INTEGER,
+            viewedAt INTEGER,
+            notes TEXT,
+            createdAt INTEGER NOT NULL,
+            updatedAt INTEGER NOT NULL,
+            deletedAt INTEGER
           );
         `);
         const fallbackBillsTableExists = sqlite.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='bills';").get();
