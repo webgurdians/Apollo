@@ -227,6 +227,152 @@ try {
         prescriptionUrl TEXT,
         awbNo TEXT
       );
+
+      -- OCC Tables Manual Fallback
+      CREATE TABLE IF NOT EXISTS tenants (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        subdomain TEXT UNIQUE,
+        status TEXT DEFAULT 'active' NOT NULL,
+        createdAt INTEGER NOT NULL,
+        updatedAt INTEGER NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS tenant_settings (
+        id TEXT PRIMARY KEY,
+        tenantId TEXT REFERENCES tenants(id) ON DELETE CASCADE,
+        key TEXT NOT NULL,
+        value TEXT,
+        updatedAt INTEGER NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS feature_flags (
+        id TEXT PRIMARY KEY,
+        tenantId TEXT REFERENCES tenants(id) ON DELETE CASCADE,
+        key TEXT NOT NULL,
+        name TEXT NOT NULL,
+        category TEXT NOT NULL,
+        description TEXT,
+        enabled INTEGER DEFAULT 0 NOT NULL,
+        rolloutPercentage INTEGER DEFAULT 100 NOT NULL,
+        updatedAt INTEGER NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS ops_secrets (
+        id TEXT PRIMARY KEY,
+        tenantId TEXT REFERENCES tenants(id) ON DELETE CASCADE,
+        provider TEXT NOT NULL,
+        referenceKey TEXT NOT NULL,
+        status TEXT DEFAULT 'active' NOT NULL,
+        lastUpdated INTEGER NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS notifications (
+        id TEXT PRIMARY KEY,
+        channel TEXT NOT NULL,
+        status TEXT NOT NULL,
+        recipient TEXT,
+        payload TEXT,
+        createdAt INTEGER NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS founder_sessions (
+        id TEXT PRIMARY KEY,
+        ipAddress TEXT,
+        userAgent TEXT,
+        startedAt INTEGER NOT NULL,
+        endedAt INTEGER
+      );
+
+      CREATE TABLE IF NOT EXISTS webhook_logs (
+        id TEXT PRIMARY KEY,
+        provider TEXT NOT NULL,
+        status TEXT NOT NULL,
+        requestId TEXT NOT NULL,
+        response TEXT,
+        createdAt INTEGER NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS background_jobs (
+        id TEXT PRIMARY KEY,
+        jobType TEXT NOT NULL,
+        status TEXT NOT NULL,
+        attempts INTEGER DEFAULT 0 NOT NULL,
+        lastRun INTEGER
+      );
+
+      CREATE TABLE IF NOT EXISTS entity_activity (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        entityType TEXT NOT NULL,
+        entityId TEXT NOT NULL,
+        action TEXT NOT NULL,
+        metadata TEXT,
+        timestamp INTEGER NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS system_alerts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        type TEXT NOT NULL,
+        severity TEXT NOT NULL,
+        message TEXT NOT NULL,
+        timestamp INTEGER NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS releases (
+        id TEXT PRIMARY KEY,
+        version TEXT NOT NULL,
+        gitCommit TEXT,
+        notes TEXT,
+        deployedAt INTEGER NOT NULL,
+        deployedBy TEXT
+      );
+
+      CREATE TABLE IF NOT EXISTS emergency_killswitches (
+        key TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        active INTEGER DEFAULT 0 NOT NULL,
+        triggeredBy TEXT NOT NULL,
+        triggeredAt INTEGER NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS integration_registry (
+        id TEXT PRIMARY KEY,
+        tenantId TEXT REFERENCES tenants(id) ON DELETE CASCADE,
+        name TEXT NOT NULL,
+        enabled INTEGER DEFAULT 0 NOT NULL,
+        healthStatus TEXT DEFAULT 'unknown' NOT NULL,
+        lastSyncAt INTEGER
+      );
+
+      CREATE TABLE IF NOT EXISTS backups (
+        id TEXT PRIMARY KEY,
+        filename TEXT NOT NULL,
+        sizeBytes INTEGER NOT NULL,
+        status TEXT NOT NULL,
+        storageProvider TEXT NOT NULL,
+        createdAt INTEGER NOT NULL,
+        verifiedAt INTEGER
+      );
+
+      CREATE TABLE IF NOT EXISTS error_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        severity TEXT NOT NULL,
+        message TEXT NOT NULL,
+        stackTrace TEXT,
+        module TEXT NOT NULL,
+        status TEXT DEFAULT 'unresolved' NOT NULL,
+        timestamp INTEGER NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS audit_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        tenantId TEXT REFERENCES tenants(id) ON DELETE CASCADE,
+        username TEXT NOT NULL,
+        action TEXT NOT NULL,
+        module TEXT NOT NULL,
+        metadata TEXT,
+        timestamp INTEGER NOT NULL
+      );
     `);
 
     // Alter table column additions in case it was created without them
@@ -235,6 +381,12 @@ try {
     } catch (e) {}
     try {
       sqlite.exec("ALTER TABLE medicine_orders ADD COLUMN awbNo TEXT;");
+    } catch (e) {}
+    try {
+      sqlite.exec("ALTER TABLE appointments ADD COLUMN amountPaid INTEGER;");
+    } catch (e) {}
+    try {
+      sqlite.exec("ALTER TABLE appointments ADD COLUMN amountDue INTEGER;");
     } catch (e) {}
 
     logInfo("Manual database schema fallback applied successfully.");
