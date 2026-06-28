@@ -223,9 +223,20 @@ try {
         deliveryStatus TEXT DEFAULT 'placed' NOT NULL,
         createdAt INTEGER NOT NULL,
         updatedAt INTEGER NOT NULL,
-        deletedAt INTEGER
+        deletedAt INTEGER,
+        prescriptionUrl TEXT,
+        awbNo TEXT
       );
     `);
+
+    // Alter table column additions in case it was created without them
+    try {
+      sqlite.exec("ALTER TABLE medicine_orders ADD COLUMN prescriptionUrl TEXT;");
+    } catch (e) {}
+    try {
+      sqlite.exec("ALTER TABLE medicine_orders ADD COLUMN awbNo TEXT;");
+    } catch (e) {}
+
     logInfo("Manual database schema fallback applied successfully.");
   } catch (fallbackError) {
     logError("Manual fallback schema creation failed:", fallbackError);

@@ -224,10 +224,7 @@ export function generateReceiptPdf(receipt: ReceiptDetails): Promise<Buffer> {
     const borderGray = "#cbd5e1";   // Border Slate
 
     // 1. Apollo Header with Logo
-    let logoPath = path.resolve(__dirname, "../../public/images/logo.png");
-    if (!fs.existsSync(logoPath)) {
-      logoPath = path.resolve(process.cwd(), "public/images/logo.png");
-    }
+    let logoPath = path.resolve(process.cwd(), "public/images/logo.png");
     if (!fs.existsSync(logoPath)) {
       logoPath = path.resolve(process.cwd(), "app/public/images/logo.png");
     }
