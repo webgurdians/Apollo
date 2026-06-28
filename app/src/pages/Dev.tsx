@@ -47,8 +47,8 @@ export default function Dev() {
           <div className="flex items-center gap-4">
             <Shield className="w-5 h-5 text-emerald-400" />
             <h1 className="text-xl font-bold text-white">Developer Dashboard</h1>
-            <span className="px-3 py-1 rounded-full text-xs font-medium bg-emerald-900 text-emerald-300 border border-emerald-700">
-              founder
+            <span className="px-3 py-1 rounded-full text-xs font-medium bg-emerald-900 text-emerald-300 border border-emerald-700 uppercase">
+              {user?.role || "founder"}
             </span>
           </div>
           <div className="flex items-center gap-3">

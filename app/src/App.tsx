@@ -16,7 +16,7 @@ import { Loader2 } from 'lucide-react'
 
 const ALLOWED_ROLES: Record<string, string[]> = {
   "/admin": ["founder", "admin", "staff", "user"],
-  "/dev": ["founder"],
+  "/dev": ["founder", "admin"],
   "/front-desk": ["front_desk", "founder", "admin"],
   "/doctor": ["doctor", "admin"],
   "/pharmacy": ["pharmacy"],
