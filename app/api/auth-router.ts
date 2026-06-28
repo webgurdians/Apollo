@@ -10,7 +10,7 @@ import { signSessionToken } from "./auth/session";
 import { TRPCError } from "@trpc/server";
 import { getDb } from "./queries/connection";
 import { users } from "@db/schema";
-import { eq } from "drizzle-orm";
+import { eq, ne } from "drizzle-orm";
 import { logActivity } from "./lib/activity";
 
 const roleEnum = z.enum(["user", "staff", "admin", "front_desk", "doctor", "pharmacy", "diagnostics", "founder"]);
@@ -109,9 +109,9 @@ export const authRouter = createRouter({
       return { success: true };
     }),
 
-  listUsers: adminQuery.query(async () => {
+  listUsers: adminQuery.query(async ({ ctx }) => {
     const db = getDb();
-    const allUsers = await db
+    const query = db
       .select({
         id: users.id,
         username: users.username,
@@ -122,9 +122,12 @@ export const authRouter = createRouter({
         lastSignInAt: users.lastSignInAt,
         deletedAt: users.deletedAt,
       })
-      .from(users)
-      .orderBy(users.createdAt);
-    return allUsers;
+      .from(users);
+
+    if (ctx.user.role !== "founder") {
+      return await query.where(ne(users.role, "founder")).orderBy(users.createdAt);
+    }
+    return await query.orderBy(users.createdAt);
   }),
 
   updateUserRole: adminQuery
