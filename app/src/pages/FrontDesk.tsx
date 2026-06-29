@@ -73,6 +73,7 @@ export default function FrontDesk() {
   const [registerAge, setRegisterAge] = useState("");
   const [registerGender, setRegisterGender] = useState("");
   const [registerPhone, setRegisterPhone] = useState("");
+  const [registerAddress, setRegisterAddress] = useState("");
   const [registerConcern, setRegisterConcern] = useState("");
   const [registerDoctorId, setRegisterDoctorId] = useState("");
   const [registerDate, setRegisterDate] = useState(format(new Date(), "yyyy-MM-dd"));
@@ -121,6 +122,7 @@ export default function FrontDesk() {
       setRegisterAge("");
       setRegisterGender("");
       setRegisterPhone("");
+      setRegisterAddress("");
       setRegisterConcern("");
       setRegisterDoctorId("");
       setRegisterDate(format(new Date(), "yyyy-MM-dd"));
@@ -461,6 +463,7 @@ export default function FrontDesk() {
                       bookWalkin.mutate({
                         name: registerName,
                         phone: registerPhone,
+                        address: registerAddress || undefined,
                         age: parseInt(registerAge),
                         gender: registerGender,
                         service: registerDoctorId
@@ -500,6 +503,10 @@ export default function FrontDesk() {
                     <div>
                       <label className="text-sm font-medium mb-1 block">Phone (Contact No)</label>
                       <Input value={registerPhone} onChange={(e) => setRegisterPhone(e.target.value)} placeholder="10-digit phone number" required />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium mb-1 block">Address</label>
+                      <Input value={registerAddress} onChange={(e) => setRegisterAddress(e.target.value)} placeholder="Complete address (optional)" />
                     </div>
                      <div>
                       <label className="text-sm font-medium mb-1 block">Select Doctor (optional)</label>

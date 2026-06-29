@@ -101,6 +101,7 @@ try {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         phone TEXT NOT NULL,
+        address TEXT,
         service TEXT NOT NULL,
         preferredDate INTEGER NOT NULL,
         message TEXT,
@@ -387,6 +388,9 @@ try {
     } catch (e) {}
     try {
       sqlite.exec("ALTER TABLE appointments ADD COLUMN amountDue INTEGER;");
+    } catch (e) {}
+    try {
+      sqlite.exec("ALTER TABLE appointments ADD COLUMN address TEXT;");
     } catch (e) {}
 
     logInfo("Manual database schema fallback applied successfully.");

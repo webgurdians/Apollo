@@ -33,6 +33,7 @@ export const appointments = sqliteTable("appointments", {
   id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
   name: text("name").notNull(),
   phone: text("phone").notNull(),
+  address: text("address"),
   service: text("service").notNull(),
   preferredDate: integer("preferredDate", { mode: "timestamp" }).notNull(),
   startTime: integer("startTime", { mode: "timestamp" }),

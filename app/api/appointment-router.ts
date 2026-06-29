@@ -19,6 +19,7 @@ type AppointmentRow = {
 export const createAppointmentInput = z.object({
   name: z.string().min(1, "Name is required"),
   phone: z.string().min(10, "Valid phone number is required"),
+  address: z.string().optional(),
   service: z.string().min(1, "Service is required"),
   preferredDate: z.string().min(1, "Preferred date is required"),
   startTime: z.string().optional(),
@@ -235,6 +236,7 @@ export const appointmentRouter = createRouter({
       const [insertedApt] = await db.insert(appointments).values({
         name: input.name,
         phone: input.phone,
+        address: input.address || null,
         service: input.service,
         preferredDate: preferredDate,
         startTime: input.startTime ? new Date(input.startTime) : null,

@@ -135,6 +135,7 @@ function DialogButton({ onViewPrescription }: { onViewPrescription: (patientId: 
   const [registerAge, setRegisterAge] = useState("");
   const [registerGender, setRegisterGender] = useState("");
   const [registerPhone, setRegisterPhone] = useState("");
+  const [registerAddress, setRegisterAddress] = useState("");
   const [registerConcern, setRegisterConcern] = useState("");
   const [registerDoctorId, setRegisterDoctorId] = useState("");
   const [registerDate, setRegisterDate] = useState(format(new Date(), "yyyy-MM-dd"));
@@ -170,6 +171,7 @@ function DialogButton({ onViewPrescription }: { onViewPrescription: (patientId: 
       setRegisterAge("");
       setRegisterGender("");
       setRegisterPhone("");
+      setRegisterAddress("");
       setRegisterConcern("");
       setRegisterDoctorId("");
       setRegisterDate(format(new Date(), "yyyy-MM-dd"));
@@ -220,6 +222,7 @@ function DialogButton({ onViewPrescription }: { onViewPrescription: (patientId: 
             bookWalkin.mutate({
               name: registerName,
               phone: registerPhone,
+              address: registerAddress || undefined,
               age: parseInt(registerAge),
               gender: registerGender,
               service: registerDoctorId
@@ -276,6 +279,14 @@ function DialogButton({ onViewPrescription }: { onViewPrescription: (patientId: 
               onChange={(e) => setRegisterPhone(e.target.value)}
               placeholder="10-digit phone number"
               required
+            />
+          </div>
+          <div>
+            <label className="text-sm font-medium mb-1 block">Address</label>
+            <Input
+              value={registerAddress}
+              onChange={(e) => setRegisterAddress(e.target.value)}
+              placeholder="Complete address (optional)"
             />
           </div>
           <div>

@@ -39,6 +39,7 @@ export default function BookAppointment() {
   const [step, setStep] = useState<"form" | "success">("form");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
   const [age, setAge] = useState("");
   const [gender, setGender] = useState("");
   const [doctorId, setDoctorId] = useState("");
@@ -54,6 +55,7 @@ export default function BookAppointment() {
     return bookMutation.mutateAsync({
       name: name.trim(),
       phone: phone.trim(),
+      address: address.trim() || undefined,
       age: age ? Number(age) : undefined,
       gender: gender || undefined,
       service: serviceName,
@@ -156,6 +158,10 @@ export default function BookAppointment() {
                   <div>
                     <Label>Phone *</Label>
                     <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="10-digit number" required />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Label>Address</Label>
+                    <Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Your complete address (optional)" />
                   </div>
                   <div>
                     <Label>Age</Label>

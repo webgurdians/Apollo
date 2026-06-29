@@ -64,6 +64,7 @@ export default function AppointmentForm({
   const { t } = useTranslation();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
   const [age, setAge] = useState("");
   const [localServiceName, setLocalServiceName] = useState("");
 
@@ -226,6 +227,7 @@ export default function AppointmentForm({
             await createAppointment.mutateAsync({
               name: name.trim(),
               phone: phone.trim(),
+              address: address.trim() || undefined,
               age: age ? Number(age) : undefined,
               service: serviceName,
               preferredDate: date!.toISOString().split("T")[0],
@@ -242,6 +244,7 @@ export default function AppointmentForm({
         await createAppointment.mutateAsync({
           name: name.trim(),
           phone: phone.trim(),
+          address: address.trim() || undefined,
           age: age ? Number(age) : undefined,
           service: serviceName,
           preferredDate: date!.toISOString().split("T")[0],
@@ -421,6 +424,19 @@ export default function AppointmentForm({
                 {errors.phone && (
                   <p className="text-xs text-red-500">{errors.phone}</p>
                 )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="address" className="flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-muted-foreground" />
+                  Address
+                </Label>
+                <Input
+                  id="address"
+                  type="text"
+                  placeholder="Complete Address (optional)"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                />
               </div>
               <div className="space-y-2">
                 <Label className="flex items-center gap-2">
