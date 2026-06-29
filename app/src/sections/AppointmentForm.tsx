@@ -88,7 +88,8 @@ export default function AppointmentForm({
   };
 
   const [message, setMessage] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<"online" | "clinic">("online");
+  const [paymentMethod, setPaymentMethod] = useState<"online" | "partial">("online");
+  const [partialAmount, setPartialAmount] = useState<number>(200);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
 
@@ -184,7 +185,8 @@ export default function AppointmentForm({
     const price = selectedService?.price || 500;
 
     const isPaid = paymentMethod === "online";
-    const paymentStatusText = isPaid ? "Paid" : "Pending Payment";
+    const isPartial = paymentMethod === "partial";
+    const paymentStatusText = isPaid ? "Paid" : (isPartial ? "Partially Paid" : "Pending Payment");
 
     setBookingDetails({
       paymentId: payId,
@@ -194,10 +196,13 @@ export default function AppointmentForm({
       service: serviceName,
       date: date ? format(date, "dd/MM/yyyy") : format(new Date(), "dd/MM/yyyy"),
       status: paymentStatusText,
+      amountPaid: isPaid ? price : (isPartial ? partialAmount : 0),
+      amountDue: isPaid ? 0 : (isPartial ? price - partialAmount : price),
     });
 
     // Open WhatsApp to send pending approval message to the clinic (simulating automated messaging with click-to-chat)
-    const whatsappText = `Hi Apollo Aranghata, I have submitted an appointment request.\n*Name:* ${name}\n*Age:* ${age}\n*Phone:* ${phone}\n*Service:* ${serviceName}\n*Preferred Date:* ${date ? format(date, "dd MMM yyyy") : ""}\n*Payment:* ${paymentMethod === "online" ? "Paid Online" : "Pay at Clinic"}\n\nPlease confirm my appointment.`;
+    const paymentTypeText = isPaid ? "Paid Full Online" : `Partially Paid (Paid: Rs.${partialAmount}, Due: Rs.${price - partialAmount})`;
+    const whatsappText = `Hi Apollo Aranghata, I have submitted an appointment request.\n*Name:* ${name}\n*Age:* ${age}\n*Phone:* ${phone}\n*Service:* ${serviceName}\n*Preferred Date:* ${date ? format(date, "dd MMM yyyy") : ""}\n*Payment:* ${paymentTypeText}\n\nPlease confirm my appointment.`;
     window.open(
       `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(whatsappText)}`,
       "_blank"
@@ -208,57 +213,57 @@ export default function AppointmentForm({
     e.preventDefault();
     if (!validate()) return;
 
-    try {
-      if (paymentMethod === "online") {
-        const loaded = await loadRazorpayScript();
-        if (!loaded) {
-          alert(t("appointment.loadingError"));
-          return;
-        }
-        const rzp = new (window as unknown as { Razorpay: new (opts: {
-          key: string; amount: number; currency: string; name: string; description: string;
-          handler: (r: { razorpay_payment_id: string }) => void;
-          prefill: { name: string; contact: string }; theme: { color: string };
-        }) => { open: () => void } }).Razorpay({
-          key: import.meta.env.VITE_RAZORPAY_KEY_ID || "",
-          amount: (selectedService?.price || 0) * 100,
-          currency: "INR",
-          name: "Apollo Clinic",
-          description: serviceName,
-          handler: async (response: { razorpay_payment_id: string }) => {
-            await createAppointment.mutateAsync({
-              name: name.trim(),
-              phone: phone.trim(),
-              address: address.trim() || undefined,
-              prescriptionFile: prescriptionFile || undefined,
-              prescriptionFileName: prescriptionFileName || undefined,
-              age: age ? Number(age) : undefined,
-              service: serviceName,
-              preferredDate: date!.toISOString().split("T")[0],
-              message: message.trim() || undefined,
-              paymentMethod: "online",
-            });
-            handleBookingSuccess(response.razorpay_payment_id);
-          },
-          prefill: { name, contact: phone },
-          theme: { color: "#2563eb" },
-        });
-        rzp.open();
-      } else {
-        await createAppointment.mutateAsync({
-          name: name.trim(),
-          phone: phone.trim(),
-          address: address.trim() || undefined,
-          prescriptionFile: prescriptionFile || undefined,
-          prescriptionFileName: prescriptionFileName || undefined,
-          age: age ? Number(age) : undefined,
-          service: serviceName,
-          preferredDate: date!.toISOString().split("T")[0],
-          message: message.trim() || undefined,
-          paymentMethod: "clinic",
-        });
-        handleBookingSuccess();
+    const price = selectedService?.price || 500;
+    if (paymentMethod === "partial") {
+      if (partialAmount < 200) {
+        alert("Minimum partial payment amount is ₹200");
+        return;
       }
+      if (partialAmount > price) {
+        alert(`Partial payment amount cannot exceed full service fee of ₹${price}`);
+        return;
+      }
+    }
+
+    try {
+      const chargeAmount = paymentMethod === "online" ? price : partialAmount;
+
+      const loaded = await loadRazorpayScript();
+      if (!loaded) {
+        alert(t("appointment.loadingError"));
+        return;
+      }
+      const rzp = new (window as unknown as { Razorpay: new (opts: {
+        key: string; amount: number; currency: string; name: string; description: string;
+        handler: (r: { razorpay_payment_id: string }) => void;
+        prefill: { name: string; contact: string }; theme: { color: string };
+      }) => { open: () => void } }).Razorpay({
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID || "",
+        amount: chargeAmount * 100,
+        currency: "INR",
+        name: "Apollo Hospital Chennai",
+        description: serviceName,
+        handler: async (response: { razorpay_payment_id: string }) => {
+          await createAppointment.mutateAsync({
+            name: name.trim(),
+            phone: phone.trim(),
+            address: address.trim() || undefined,
+            prescriptionFile: prescriptionFile || undefined,
+            prescriptionFileName: prescriptionFileName || undefined,
+            age: age ? Number(age) : undefined,
+            service: serviceName,
+            preferredDate: date!.toISOString().split("T")[0],
+            message: message.trim() || undefined,
+            paymentMethod: paymentMethod,
+            amountPaid: paymentMethod === "partial" ? partialAmount : undefined,
+            amountDue: paymentMethod === "partial" ? price - partialAmount : undefined,
+          });
+          handleBookingSuccess(response.razorpay_payment_id);
+        },
+        prefill: { name, contact: phone },
+        theme: { color: "#2563eb" },
+      });
+      rzp.open();
     } catch (err) {
       console.error("Booking failed", err);
       alert(t("appointment.bookingError"));
@@ -314,7 +319,8 @@ export default function AppointmentForm({
                   setDate(undefined);
                   setMessage("");
                   setErrors({});
-                  setPaymentMethod("clinic");
+                  setPaymentMethod("online");
+                  setPartialAmount(200);
                 }}
               >
                 {t("appointment.bookAnother")}
@@ -575,15 +581,32 @@ export default function AppointmentForm({
                   <div
                     className={cn(
                       "border-2 rounded-xl p-4 cursor-pointer flex flex-col items-center gap-2 transition-all",
-                      paymentMethod === "clinic" ? "border-apollo-blue bg-apollo-light/50" : "border-gray-200 hover:border-apollo-blue/50"
+                      paymentMethod === "partial" ? "border-apollo-blue bg-apollo-light/50" : "border-gray-200 hover:border-apollo-blue/50"
                     )}
-                    onClick={() => setPaymentMethod("clinic")}
+                    onClick={() => setPaymentMethod("partial")}
                   >
-                    <Banknote className={cn("w-6 h-6", paymentMethod === "clinic" ? "text-apollo-blue" : "text-gray-400")} />
-                    <span className="font-medium text-sm text-center">{t("appointment.payAtClinic")}</span>
-                    <span className="text-[11px] text-center text-muted-foreground leading-tight">{t("appointment.payAtClinicDesc")}</span>
+                    <Banknote className={cn("w-6 h-6", paymentMethod === "partial" ? "text-apollo-blue" : "text-gray-400")} />
+                    <span className="font-medium text-sm text-center">Partial Payment</span>
+                    <span className="text-[11px] text-center text-muted-foreground leading-tight">Pay token amount online to secure booking</span>
                   </div>
                 </div>
+                {paymentMethod === "partial" && (
+                  <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                    <div className="flex justify-between items-center text-xs font-semibold">
+                      <Label htmlFor="partialAmountInput">Partial Amount (₹)</Label>
+                      <span className="text-apollo-blue">Min: ₹200 / Max: ₹{selectedService?.price || 500}</span>
+                    </div>
+                    <Input
+                      id="partialAmountInput"
+                      type="number"
+                      min={200}
+                      max={selectedService?.price || 500}
+                      value={partialAmount}
+                      onChange={(e) => setPartialAmount(Number(e.target.value))}
+                      className="bg-white h-9"
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="pt-4 border-t">

@@ -83,7 +83,7 @@ export function generatePrescriptionPdf(prescription: PrescriptionDetails): Prom
       }
     }
 
-    doc.fillColor(primaryColor).fontSize(20).font("Helvetica-Bold").text("APOLLO CLINIC", headerTextX, 48);
+    doc.fillColor(primaryColor).fontSize(18).font("Helvetica-Bold").text("APOLLO HOSPITAL CHENNAI", headerTextX, 48);
     doc.fillColor(grayColor).fontSize(9).font("Helvetica").text("Information Centre Aranghata", headerTextX, doc.y);
     
     const headerY = Math.max(doc.y, 45 + 45);
@@ -189,7 +189,7 @@ export function generatePrescriptionPdf(prescription: PrescriptionDetails): Prom
     doc.moveTo(50, doc.y).lineTo(545, doc.y).strokeColor(borderGray).stroke();
     doc.moveDown(1.5);
     doc.fillColor("#94a3b8").fontSize(8).font("Helvetica").text(
-      "This is an official, digitally generated medical prescription. Thank you for choosing Apollo Clinic.",
+      "This is an official, digitally generated medical prescription. Thank you for choosing Apollo Hospital Chennai.",
       { align: "center", width: 495 }
     );
 
@@ -205,6 +205,8 @@ interface ReceiptDetails {
   service: string;
   date: string;
   status?: string;
+  amountPaid?: number;
+  amountDue?: number;
 }
 
 export function generateReceiptPdf(receipt: ReceiptDetails): Promise<Buffer> {
@@ -239,7 +241,7 @@ export function generateReceiptPdf(receipt: ReceiptDetails): Promise<Buffer> {
       }
     }
 
-    doc.fillColor(primaryColor).fontSize(20).font("Helvetica-Bold").text("APOLLO CLINIC", headerTextX, 48);
+    doc.fillColor(primaryColor).fontSize(18).font("Helvetica-Bold").text("APOLLO HOSPITAL CHENNAI", headerTextX, 48);
     doc.fillColor(grayColor).fontSize(9).font("Helvetica").text("Information Centre Aranghata", headerTextX, doc.y);
 
     const headerY = Math.max(doc.y, 45 + 45);
@@ -309,8 +311,8 @@ export function generateReceiptPdf(receipt: ReceiptDetails): Promise<Buffer> {
     currentY += 10;
 
     const isPending = receipt.status?.toLowerCase().includes("pending");
-    const amountPaid = isPending ? 0 : receipt.amount;
-    const amountDue = isPending ? receipt.amount : 0;
+    const amountPaid = receipt.amountPaid !== undefined ? receipt.amountPaid : (isPending ? 0 : receipt.amount);
+    const amountDue = receipt.amountDue !== undefined ? receipt.amountDue : (isPending ? receipt.amount : 0);
 
     doc.fillColor(darkColor).fontSize(9).font("Helvetica-Bold").text("Total Amount:", 300, currentY, { width: 110, align: "right" });
     doc.fillColor(darkColor).fontSize(9).font("Helvetica").text(`Rs. ${receipt.amount.toFixed(2)}`, 420, currentY, { width: 125, align: "right" });
@@ -330,7 +332,7 @@ export function generateReceiptPdf(receipt: ReceiptDetails): Promise<Buffer> {
     doc.moveTo(50, doc.y).lineTo(545, doc.y).strokeColor(borderGray).stroke();
     doc.moveDown(1.5);
     doc.fillColor("#94a3b8").fontSize(8).font("Helvetica").text(
-      "Thank you for choosing Apollo Clinic. This is an official digitally generated payment receipt.",
+      "Thank you for choosing Apollo Hospital Chennai. This is an official digitally generated payment receipt.",
       { align: "center", width: 495 }
     );
 

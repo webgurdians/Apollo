@@ -47,13 +47,14 @@ export default function BookAppointment() {
   const [doctorId, setDoctorId] = useState("");
   const [date, setDate] = useState<Date | undefined>();
   const [concern, setConcern] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<"online" | "clinic">("online");
+  const [paymentMethod, setPaymentMethod] = useState<"online" | "partial">("online");
+  const [partialAmount, setPartialAmount] = useState<number>(200);
 
   const selectedDoctor = doctors?.find((d) => d.id.toString() === doctorId);
   const serviceName = selectedDoctor?.serviceName || "OPD Consultation - General Physician";
   const amount = selectedDoctor?.fees || servicePrices[serviceName] || 500;
 
-  const createAppointment = async (method: "online" | "clinic") => {
+  const createAppointment = async (method: "online" | "partial") => {
     return bookMutation.mutateAsync({
       name: name.trim(),
       phone: phone.trim(),
@@ -67,6 +68,8 @@ export default function BookAppointment() {
       message: concern.trim() || undefined,
       doctorId: doctorId ? parseInt(doctorId) : undefined,
       paymentMethod: method,
+      amountPaid: method === "partial" ? partialAmount : undefined,
+      amountDue: method === "partial" ? amount - partialAmount : undefined,
     });
   };
 
@@ -74,33 +77,41 @@ export default function BookAppointment() {
     e.preventDefault();
     if (!date) return;
 
-    try {
-      if (paymentMethod === "online") {
-        const loaded = await loadRazorpayScript();
-        if (!loaded) {
-          alert("Payment gateway unavailable. Please try again.");
-          return;
-        }
-        const rzp = new (window as any).Razorpay({
-          key: RAZORPAY_KEY,
-          amount: amount * 100,
-          currency: "INR",
-          name: "Apollo Clinic",
-          description: serviceName,
-          handler: async () => {
-            await createAppointment("online");
-            setStep("success");
-          },
-          prefill: { name, contact: phone },
-          theme: { color: "#2563eb" },
-          modal: { ondismiss: () => {} },
-        });
-        rzp.on("payment.failed", () => alert("Payment failed. Please try again."));
-        rzp.open();
-      } else {
-        await createAppointment("clinic");
-        setStep("success");
+    if (paymentMethod === "partial") {
+      if (partialAmount < 200) {
+        alert("Minimum partial payment amount is ₹200");
+        return;
       }
+      if (partialAmount > amount) {
+        alert(`Partial payment amount cannot exceed full service fee of ₹${amount}`);
+        return;
+      }
+    }
+
+    try {
+      const chargeAmount = paymentMethod === "online" ? amount : partialAmount;
+
+      const loaded = await loadRazorpayScript();
+      if (!loaded) {
+        alert("Payment gateway unavailable. Please try again.");
+        return;
+      }
+      const rzp = new (window as any).Razorpay({
+        key: RAZORPAY_KEY,
+        amount: chargeAmount * 100,
+        currency: "INR",
+        name: "Apollo Hospital Chennai",
+        description: serviceName,
+        handler: async () => {
+          await createAppointment(paymentMethod);
+          setStep("success");
+        },
+        prefill: { name, contact: phone },
+        theme: { color: "#2563eb" },
+        modal: { ondismiss: () => {} },
+      });
+      rzp.on("payment.failed", () => alert("Payment failed. Please try again."));
+      rzp.open();
     } catch {
       alert("Booking failed. Please try again.");
     }
@@ -122,9 +133,10 @@ export default function BookAppointment() {
             <div className="flex flex-col sm:flex-row gap-3">
               <Button
                 className="gap-2 bg-green-600 hover:bg-green-700"
-                onClick={() =>
-                  window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(`Hi Apollo Aranghata, I have submitted an appointment request.\n*Name:* ${name}\n*Phone:* ${phone}\n*Service:* ${serviceName}\n*Date:* ${date ? format(date, "dd MMM yyyy") : ""}\n\nPlease confirm my appointment.`)}`, "_blank")
-                }
+                onClick={() => {
+                  const paymentText = paymentMethod === "online" ? "Paid Full Online" : `Partially Paid (Paid: Rs.${partialAmount}, Due: Rs.${amount - partialAmount})`;
+                  window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(`Hi Apollo Aranghata, I have submitted an appointment request.\n*Name:* ${name}\n*Phone:* ${phone}\n*Service:* ${serviceName}\n*Date:* ${date ? format(date, "dd MMM yyyy") : ""}\n*Payment:* ${paymentText}\n\nPlease confirm my appointment.`)}`, "_blank");
+                }}
               >
                 <MessageCircle className="w-4 h-4" />
                 Follow Up on WhatsApp
@@ -235,19 +247,37 @@ export default function BookAppointment() {
                   <Input value={concern} onChange={(e) => setConcern(e.target.value)} placeholder="Brief description (optional)" />
                 </div>
 
-                <div>
-                  <Label>Payment</Label>
-                  <Select value={paymentMethod} onValueChange={(v: "online" | "clinic") => setPaymentMethod(v)}>
+                 <div>
+                  <Label>Payment Option</Label>
+                  <Select value={paymentMethod} onValueChange={(v: "online" | "partial") => setPaymentMethod(v)}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="online">Pay Online — ₹{amount}</SelectItem>
-                      <SelectItem value="clinic">Pay at Clinic</SelectItem>
+                      <SelectItem value="online">Pay Full Online — ₹{amount}</SelectItem>
+                      <SelectItem value="partial">Partial Payment</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
+                {paymentMethod === "partial" && (
+                  <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                    <div className="flex justify-between items-center text-xs font-semibold">
+                      <Label htmlFor="partialAmountInput">Enter Partial Amount (₹)</Label>
+                      <span className="text-apollo-blue">Min: ₹200 / Max: ₹{amount}</span>
+                    </div>
+                    <Input
+                      id="partialAmountInput"
+                      type="number"
+                      min={200}
+                      max={amount}
+                      value={partialAmount}
+                      onChange={(e) => setPartialAmount(Number(e.target.value))}
+                      className="bg-white h-9"
+                    />
+                  </div>
+                )}
+
                 <Button type="submit" className="w-full bg-apollo-blue hover:bg-apollo-dark text-white py-5 text-base" disabled={bookMutation.isPending}>
-                  {bookMutation.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Booking...</> : paymentMethod === "online" ? `Pay ₹${amount} & Book` : "Confirm Appointment"}
+                  {bookMutation.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Booking...</> : `Pay ₹${paymentMethod === "online" ? amount : partialAmount} & Book`}
                 </Button>
 
                 {bookMutation.error && (

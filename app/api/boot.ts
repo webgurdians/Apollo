@@ -815,7 +815,7 @@ app.get("/health", (c) => c.json({ status: "ok" }, 200));
 app.post("/api/generate-receipt-pdf", async (c) => {
   try {
     const body = await c.req.json();
-    const { paymentId, amount, phone, patientName, service, date, status } = body;
+    const { paymentId, amount, phone, patientName, service, date, status, amountPaid, amountDue } = body;
 
     if (!paymentId || amount === undefined || !patientName || !service) {
       return c.json({ error: "Missing required fields" }, 400);
@@ -829,6 +829,8 @@ app.post("/api/generate-receipt-pdf", async (c) => {
       service,
       date: date || new Date().toLocaleDateString(),
       status: status || undefined,
+      amountPaid: amountPaid !== undefined ? Number(amountPaid) : undefined,
+      amountDue: amountDue !== undefined ? Number(amountDue) : undefined,
     });
 
     c.header("Content-Type", "application/pdf");
@@ -849,6 +851,8 @@ app.get("/api/receipts/pdf", async (c) => {
     const service = c.req.query("service");
     const date = c.req.query("date");
     const status = c.req.query("status");
+    const amountPaid = c.req.query("amountPaid");
+    const amountDue = c.req.query("amountDue");
 
     if (!paymentId || !amount || !patientName || !service) {
       return c.text("Missing required fields", 400);
@@ -862,6 +866,8 @@ app.get("/api/receipts/pdf", async (c) => {
       service,
       date: date || new Date().toLocaleDateString(),
       status: status || undefined,
+      amountPaid: amountPaid !== undefined ? Number(amountPaid) : undefined,
+      amountDue: amountDue !== undefined ? Number(amountDue) : undefined,
     });
 
     c.header("Content-Type", "application/pdf");
