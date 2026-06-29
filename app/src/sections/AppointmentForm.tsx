@@ -199,14 +199,6 @@ export default function AppointmentForm({
       amountPaid: isPaid ? price : (isPartial ? partialAmount : 0),
       amountDue: isPaid ? 0 : (isPartial ? price - partialAmount : price),
     });
-
-    // Open WhatsApp to send pending approval message to the clinic (simulating automated messaging with click-to-chat)
-    const paymentTypeText = isPaid ? "Paid Full Online" : `Partially Paid (Paid: Rs.${partialAmount}, Due: Rs.${price - partialAmount})`;
-    const whatsappText = `Hi Apollo Aranghata, I have submitted an appointment request.\n*Name:* ${name}\n*Age:* ${age}\n*Phone:* ${phone}\n*Service:* ${serviceName}\n*Preferred Date:* ${date ? format(date, "dd MMM yyyy") : ""}\n*Payment:* ${paymentTypeText}\n\nPlease confirm my appointment.`;
-    window.open(
-      `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(whatsappText)}`,
-      "_blank"
-    );
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
