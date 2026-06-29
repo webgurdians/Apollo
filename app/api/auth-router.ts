@@ -172,6 +172,27 @@ export const authRouter = createRouter({
       return { success: true };
     }),
 
+  updateUserPassword: adminQuery
+    .input(z.object({
+      id: z.number(),
+      newPassword: z.string().min(4),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb();
+      const [user] = await db.select().from(users).where(eq(users.id, input.id)).limit(1);
+      if (!user) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+      }
+      
+      const salt = crypto.randomBytes(16).toString("hex");
+      const hash = crypto.scryptSync(input.newPassword, salt, 64).toString("hex");
+      const passwordHash = `${salt}:${hash}`;
+
+      await db.update(users).set({ passwordHash }).where(eq(users.id, input.id));
+      await logActivity(ctx.user, "update", "user", input.id, `Reset password for user ${user.username}`);
+      return { success: true };
+    }),
+
   logout: authedQuery.mutation(async ({ ctx }) => {
     const opts = getSessionCookieOptions(ctx.req.headers);
     ctx.resHeaders.append(

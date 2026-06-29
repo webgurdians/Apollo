@@ -24,7 +24,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Loader2, Plus, Trash2, User, Shield } from "lucide-react";
+import { Loader2, Plus, Trash2, User, Shield, KeyRound } from "lucide-react";
 import { format } from "date-fns";
 
 const roleColors: Record<string, string> = {
@@ -71,6 +71,20 @@ export function StaffSection() {
 
   const deleteUser = trpc.auth.deleteUser.useMutation({
     onSuccess: () => utils.auth.listUsers.invalidate(),
+  });
+
+  const [resetUserId, setResetUserId] = useState<number | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+
+  const updatePassword = trpc.auth.updateUserPassword.useMutation({
+    onSuccess: () => {
+      alert("Password updated successfully!");
+      setResetUserId(null);
+      setNewPassword("");
+    },
+    onError: (err) => {
+      alert(err.message || "Failed to update password.");
+    },
   });
 
   const activeStaff = staff?.filter((u) => !u.deletedAt) || [];
@@ -189,6 +203,18 @@ export function StaffSection() {
                     <Button
                       variant="ghost"
                       size="sm"
+                      className="h-8 w-8 p-0 text-blue-500 mr-2"
+                      title="Change Password"
+                      onClick={() => {
+                        setResetUserId(u.id);
+                        setNewPassword("");
+                      }}
+                    >
+                      <KeyRound className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       className="h-8 w-8 p-0 text-red-500"
                       title="Deactivate user"
                       onClick={() => {
@@ -206,6 +232,39 @@ export function StaffSection() {
           </TableBody>
         </Table>
       </div>
+
+      {/* Reset Password Dialog */}
+      <Dialog open={resetUserId !== null} onOpenChange={(open) => { if (!open) setResetUserId(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Change Password</DialogTitle>
+          </DialogHeader>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (resetUserId) {
+                updatePassword.mutate({ id: resetUserId, newPassword });
+              }
+            }}
+            className="space-y-4"
+          >
+            <div>
+              <label className="text-sm font-medium mb-1 block">New Password</label>
+              <Input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Enter new password (min 4 characters)"
+                required
+                minLength={4}
+              />
+            </div>
+            <Button type="submit" className="w-full" disabled={updatePassword.isPending}>
+              {updatePassword.isPending ? "Updating..." : "Update Password"}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
