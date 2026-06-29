@@ -42,6 +42,7 @@ import {
   ShoppingBag,
   Mail,
   Stethoscope,
+  FileText,
 } from "lucide-react";
 import { Link } from "react-router";
 import { format } from "date-fns";
