@@ -40,6 +40,8 @@ export default function BookAppointment() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
+  const [prescriptionFile, setPrescriptionFile] = useState("");
+  const [prescriptionFileName, setPrescriptionFileName] = useState("");
   const [age, setAge] = useState("");
   const [gender, setGender] = useState("");
   const [doctorId, setDoctorId] = useState("");
@@ -56,6 +58,8 @@ export default function BookAppointment() {
       name: name.trim(),
       phone: phone.trim(),
       address: address.trim() || undefined,
+      prescriptionFile: prescriptionFile || undefined,
+      prescriptionFileName: prescriptionFileName || undefined,
       age: age ? Number(age) : undefined,
       gender: gender || undefined,
       service: serviceName,
@@ -162,6 +166,25 @@ export default function BookAppointment() {
                   <div className="sm:col-span-2">
                     <Label>Address</Label>
                     <Input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Your complete address (optional)" />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Label>Upload Prescription (optional)</Label>
+                    <Input
+                      type="file"
+                      accept="application/pdf,image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setPrescriptionFileName(file.name);
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            setPrescriptionFile(reader.result as string);
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      className="bg-white"
+                    />
                   </div>
                   <div>
                     <Label>Age</Label>

@@ -34,6 +34,8 @@ export const appointments = sqliteTable("appointments", {
   name: text("name").notNull(),
   phone: text("phone").notNull(),
   address: text("address"),
+  prescriptionFile: text("prescription_file"),
+  prescriptionFileName: text("prescription_file_name"),
   service: text("service").notNull(),
   preferredDate: integer("preferredDate", { mode: "timestamp" }).notNull(),
   startTime: integer("startTime", { mode: "timestamp" }),

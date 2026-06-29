@@ -20,6 +20,8 @@ export const createAppointmentInput = z.object({
   name: z.string().min(1, "Name is required"),
   phone: z.string().min(10, "Valid phone number is required"),
   address: z.string().optional(),
+  prescriptionFile: z.string().optional(),
+  prescriptionFileName: z.string().optional(),
   service: z.string().min(1, "Service is required"),
   preferredDate: z.string().min(1, "Preferred date is required"),
   startTime: z.string().optional(),
@@ -237,6 +239,8 @@ export const appointmentRouter = createRouter({
         name: input.name,
         phone: input.phone,
         address: input.address || null,
+        prescriptionFile: input.prescriptionFile || null,
+        prescriptionFileName: input.prescriptionFileName || null,
         service: input.service,
         preferredDate: preferredDate,
         startTime: input.startTime ? new Date(input.startTime) : null,
@@ -319,6 +323,8 @@ export const appointmentRouter = createRouter({
         doctorFees: doctors.fees,
         amountPaid: appointments.amountPaid,
         amountDue: appointments.amountDue,
+        prescriptionFile: appointments.prescriptionFile,
+        prescriptionFileName: appointments.prescriptionFileName,
       })
       .from(appointments)
       .leftJoin(doctors, eq(appointments.doctorId, doctors.id))

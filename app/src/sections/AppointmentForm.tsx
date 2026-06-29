@@ -65,6 +65,8 @@ export default function AppointmentForm({
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
+  const [prescriptionFile, setPrescriptionFile] = useState("");
+  const [prescriptionFileName, setPrescriptionFileName] = useState("");
   const [age, setAge] = useState("");
   const [localServiceName, setLocalServiceName] = useState("");
 
@@ -228,6 +230,8 @@ export default function AppointmentForm({
               name: name.trim(),
               phone: phone.trim(),
               address: address.trim() || undefined,
+              prescriptionFile: prescriptionFile || undefined,
+              prescriptionFileName: prescriptionFileName || undefined,
               age: age ? Number(age) : undefined,
               service: serviceName,
               preferredDate: date!.toISOString().split("T")[0],
@@ -245,6 +249,8 @@ export default function AppointmentForm({
           name: name.trim(),
           phone: phone.trim(),
           address: address.trim() || undefined,
+          prescriptionFile: prescriptionFile || undefined,
+          prescriptionFileName: prescriptionFileName || undefined,
           age: age ? Number(age) : undefined,
           service: serviceName,
           preferredDate: date!.toISOString().split("T")[0],
@@ -436,6 +442,29 @@ export default function AppointmentForm({
                   placeholder="Complete Address (optional)"
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="prescription" className="flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-muted-foreground" />
+                  Upload Prescription (optional)
+                </Label>
+                <Input
+                  id="prescription"
+                  type="file"
+                  accept="application/pdf,image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setPrescriptionFileName(file.name);
+                      const reader = new FileReader();
+                      reader.onloadend = () => {
+                        setPrescriptionFile(reader.result as string);
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                  className="bg-white"
                 />
               </div>
               <div className="space-y-2">

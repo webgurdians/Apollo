@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, MessageSquare, Phone, Receipt, Trash2 } from "lucide-react";
+import { Loader2, MessageSquare, Phone, Receipt, Trash2, Download } from "lucide-react";
 import { format } from "date-fns";
 
 const servicePrices: Record<string, number> = {
@@ -218,6 +218,24 @@ export default function AppointmentsSection() {
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-2">
+                    {apt.prescriptionFile && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 text-amber-600"
+                        title={`Download Prescription: ${apt.prescriptionFileName || "prescription"}`}
+                        onClick={() => {
+                          const link = document.createElement("a");
+                          link.href = apt.prescriptionFile;
+                          link.download = apt.prescriptionFileName || "prescription";
+                          document.body.appendChild(link);
+                          link.click();
+                          document.body.removeChild(link);
+                        }}
+                      >
+                        <Download className="w-4 h-4" />
+                      </Button>
+                    )}
                     <Button
                       variant="ghost"
                       size="sm"

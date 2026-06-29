@@ -74,6 +74,8 @@ export default function FrontDesk() {
   const [registerGender, setRegisterGender] = useState("");
   const [registerPhone, setRegisterPhone] = useState("");
   const [registerAddress, setRegisterAddress] = useState("");
+  const [registerPrescriptionFile, setRegisterPrescriptionFile] = useState("");
+  const [registerPrescriptionFileName, setRegisterPrescriptionFileName] = useState("");
   const [registerConcern, setRegisterConcern] = useState("");
   const [registerDoctorId, setRegisterDoctorId] = useState("");
   const [registerDate, setRegisterDate] = useState(format(new Date(), "yyyy-MM-dd"));
@@ -123,6 +125,8 @@ export default function FrontDesk() {
       setRegisterGender("");
       setRegisterPhone("");
       setRegisterAddress("");
+      setRegisterPrescriptionFile("");
+      setRegisterPrescriptionFileName("");
       setRegisterConcern("");
       setRegisterDoctorId("");
       setRegisterDate(format(new Date(), "yyyy-MM-dd"));
@@ -464,6 +468,8 @@ export default function FrontDesk() {
                         name: registerName,
                         phone: registerPhone,
                         address: registerAddress || undefined,
+                        prescriptionFile: registerPrescriptionFile || undefined,
+                        prescriptionFileName: registerPrescriptionFileName || undefined,
                         age: parseInt(registerAge),
                         gender: registerGender,
                         service: registerDoctorId
@@ -507,6 +513,25 @@ export default function FrontDesk() {
                     <div>
                       <label className="text-sm font-medium mb-1 block">Address</label>
                       <Input value={registerAddress} onChange={(e) => setRegisterAddress(e.target.value)} placeholder="Complete address (optional)" />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium mb-1 block">Upload Prescription (optional)</label>
+                      <Input
+                        type="file"
+                        accept="application/pdf,image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setRegisterPrescriptionFileName(file.name);
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              setRegisterPrescriptionFile(reader.result as string);
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                        className="bg-white"
+                      />
                     </div>
                      <div>
                       <label className="text-sm font-medium mb-1 block">Select Doctor (optional)</label>

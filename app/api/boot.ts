@@ -102,6 +102,8 @@ try {
         name TEXT NOT NULL,
         phone TEXT NOT NULL,
         address TEXT,
+        prescription_file TEXT,
+        prescription_file_name TEXT,
         service TEXT NOT NULL,
         preferredDate INTEGER NOT NULL,
         message TEXT,
@@ -391,6 +393,12 @@ try {
     } catch (e) {}
     try {
       sqlite.exec("ALTER TABLE appointments ADD COLUMN address TEXT;");
+    } catch (e) {}
+    try {
+      sqlite.exec("ALTER TABLE appointments ADD COLUMN prescription_file TEXT;");
+    } catch (e) {}
+    try {
+      sqlite.exec("ALTER TABLE appointments ADD COLUMN prescription_file_name TEXT;");
     } catch (e) {}
 
     logInfo("Manual database schema fallback applied successfully.");
