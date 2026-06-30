@@ -19,11 +19,11 @@ import { trpc } from './providers/trpc'
 
 const ALLOWED_ROLES: Record<string, string[]> = {
   "/admin": ["platform_owner", "developer_preview", "founder", "admin", "staff", "user"],
-
   "/front-desk": ["front_desk", "platform_owner", "developer_preview", "founder", "admin"],
   "/doctor": ["doctor", "admin"],
   "/pharmacy": ["pharmacy"],
   "/diagnostics": ["diagnostics"],
+  "/ops": ["platform_owner", "founder"],
 }
 
 function ProtectedRoute({ path, children }: { path: string; children: React.ReactNode }) {

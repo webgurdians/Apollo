@@ -45,7 +45,8 @@ export const featuresRouter = createRouter({
     // Default all expected keys to false for fail-closed safety
     const expectedKeys = [
       "appointments", "billing", "doctors", "whatsapp", "revenue", 
-      "diagnostics", "online_consultation", "ai_receptionist", "reviews"
+      "diagnostics", "online_consultation", "ai_receptionist", "reviews",
+      "apollo_whatsapp_enabled", "apollo_campaigns_enabled", "apollo_revenue_enabled", "apollo_billing_v2_enabled", "apollo_ai_assistant_enabled"
     ];
     for (const key of expectedKeys) {
       flags[key] = false;

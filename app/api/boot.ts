@@ -644,7 +644,12 @@ try {
     { key: "diagnostics", name: "Diagnostics Panel", category: "addon", enabled: 0 },
     { key: "online_consultation", name: "Online Consultations", category: "addon", enabled: 0 },
     { key: "ai_receptionist", name: "AI Receptionist", category: "addon", enabled: 0 },
-    { key: "reviews", name: "Patient Reviews", category: "addon", enabled: 0 }
+    { key: "reviews", name: "Patient Reviews", category: "addon", enabled: 0 },
+    { key: "apollo_whatsapp_enabled", name: "WhatsApp Automation V2", category: "integration", enabled: 0 },
+    { key: "apollo_campaigns_enabled", name: "WhatsApp Campaigns", category: "integration", enabled: 0 },
+    { key: "apollo_revenue_enabled", name: "Revenue Ledger", category: "addon", enabled: 0 },
+    { key: "apollo_billing_v2_enabled", name: "Billing & Invoicing V2", category: "addon", enabled: 0 },
+    { key: "apollo_ai_assistant_enabled", name: "AI Receptionist Assistant", category: "addon", enabled: 0 }
   ];
   for (const flag of defaultFlags) {
     const flagId = `flag_${flag.key}`;
