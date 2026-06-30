@@ -226,7 +226,7 @@ export const billingRouter = createRouter({
       return { success: true };
     }),
 
-  listTransactions: founderQuery.query(async ({ ctx }) => {
+  listTransactions: billingQuery.query(async ({ ctx }) => {
     const db = getDb();
     return await db.select({
       id: billingTransactions.id,
@@ -250,7 +250,7 @@ export const billingRouter = createRouter({
     .all();
   }),
 
-  createTransaction: founderQuery
+  createTransaction: billingQuery
     .input(
       z.object({
         patientId: z.number(),
@@ -316,7 +316,7 @@ export const billingRouter = createRouter({
       return { success: true, transaction: newTx };
     }),
 
-  refundTransaction: founderQuery
+  refundTransaction: billingQuery
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => {
       const db = getDb();
