@@ -26,7 +26,7 @@ export const patientsRouter = createRouter({
       const existing = await db
         .select()
         .from(patients)
-        .where(and(eq(patients.phone, input.phone), isNull(patients.deletedAt)))
+        .where(and(eq(patients.phone, input.phone), eq(patients.tenantId, ctx.tenantId), isNull(patients.deletedAt)))
         .limit(1);
 
       if (existing.length > 0) {
@@ -49,6 +49,7 @@ export const patientsRouter = createRouter({
       }
 
       const [newPatient] = await db.insert(patients).values({
+        tenantId: ctx.tenantId,
         name: input.name,
         age: input.age,
         gender: input.gender,
@@ -71,9 +72,9 @@ export const patientsRouter = createRouter({
         assignedDoctorId: z.number().optional(),
       }).optional()
     )
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const db = getDb();
-      const conditions: SQL[] = [isNull(patients.deletedAt)];
+      const conditions: SQL[] = [isNull(patients.deletedAt), eq(patients.tenantId, ctx.tenantId)];
       if (input?.status) {
         conditions.push(eq(patients.status, input.status));
       }

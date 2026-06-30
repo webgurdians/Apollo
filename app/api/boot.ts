@@ -555,6 +555,9 @@ try {
     try {
       sqlite.exec("ALTER TABLE appointments ADD COLUMN prescription_file_name TEXT;");
     } catch (e) {}
+    try {
+      sqlite.exec("ALTER TABLE appointments ADD COLUMN tenant_id TEXT DEFAULT 'apollo-aranghata' NOT NULL;");
+    } catch (e) {}
 
     logInfo("Manual database schema fallback applied successfully.");
   } catch (fallbackError) {
@@ -640,6 +643,13 @@ try {
     ON CONFLICT(id) DO NOTHING
   `).run(now, now);
 
+  // 1b. Seed Preview Tenant
+  occDb.prepare(`
+    INSERT INTO tenants (id, name, subdomain, status, createdAt, updatedAt)
+    VALUES ('apollo_preview', 'Apollo Preview', 'preview', 'active', ?, ?)
+    ON CONFLICT(id) DO NOTHING
+  `).run(now, now);
+
   // 2. Seed default Tenant Settings
   const defaultSettings = [
     { key: "clinic_name", value: "Apollo Information Centre Aranghata" },
@@ -651,6 +661,21 @@ try {
     occDb.prepare(`
       INSERT INTO tenant_settings (id, tenantId, key, value, updatedAt)
       VALUES (?, 'apollo-aranghata', ?, ?, ?)
+      ON CONFLICT(id) DO NOTHING
+    `).run(settingId, setting.key, setting.value, now);
+  }
+
+  // 2b. Seed default Tenant Settings for Preview
+  const previewSettings = [
+    { key: "clinic_name", value: "Apollo Preview" },
+    { key: "clinic_phone", value: "+917699933383" },
+    { key: "timezone", value: "Asia/Kolkata" }
+  ];
+  for (const setting of previewSettings) {
+    const settingId = `setting_preview_${setting.key}`;
+    occDb.prepare(`
+      INSERT INTO tenant_settings (id, tenantId, key, value, updatedAt)
+      VALUES (?, 'apollo_preview', ?, ?, ?)
       ON CONFLICT(id) DO NOTHING
     `).run(settingId, setting.key, setting.value, now);
   }
@@ -679,6 +704,16 @@ try {
       VALUES (?, 'apollo-aranghata', ?, ?, ?, '', ?, ?, 100, ?)
       ON CONFLICT(id) DO NOTHING
     `).run(flagId, flag.key, flag.name, flag.category, flag.enabled, status, now);
+  }
+
+  // 3b. Seed default Feature Flags for Preview Tenant (All enabled for testing)
+  for (const flag of defaultFlags) {
+    const flagId = `flag_preview_${flag.key}`;
+    occDb.prepare(`
+      INSERT INTO feature_flags (id, tenantId, key, name, category, description, enabled, status, rolloutPercentage, updatedAt)
+      VALUES (?, 'apollo_preview', ?, ?, ?, '', 1, 'enabled', 100, ?)
+      ON CONFLICT(id) DO NOTHING
+    `).run(flagId, flag.key, flag.name, flag.category, now);
   }
 
   // 4. Seed default Emergency Killswitches
@@ -821,11 +856,49 @@ export function runSeeding() {
 
     for (const pat of samplePatients) {
       seedDb.prepare(`
-        INSERT INTO patients (name, age, gender, phone, concern, status, createdAt, updatedAt)
-        VALUES (?, ?, ?, ?, ?, 'waiting', ?, ?)
+        INSERT INTO patients (tenantId, name, age, gender, phone, concern, status, createdAt, updatedAt)
+        VALUES ('apollo-aranghata', ?, ?, ?, ?, ?, 'waiting', ?, ?)
       `).run(pat.name, pat.age, pat.gender, pat.phone, pat.concern, now, now);
     }
-    console.log(`Seed: created ${samplePatients.length} sample patients`);
+
+    // Seed preview patients
+    const previewPatients = [
+      { name: "Rahul Sharma", age: 40, gender: "Male", phone: "9999911111", concern: "Consultation" },
+      { name: "Priya Das", age: 28, gender: "Female", phone: "9999922222", concern: "Follow-up" },
+      { name: "Arjun Roy", age: 35, gender: "Male", phone: "9999933333", concern: "Walk-in" }
+    ];
+    for (const pat of previewPatients) {
+      seedDb.prepare(`
+        INSERT INTO patients (tenantId, name, age, gender, phone, concern, status, createdAt, updatedAt)
+        VALUES ('apollo_preview', ?, ?, ?, ?, ?, 'waiting', ?, ?)
+      `).run(pat.name, pat.age, pat.gender, pat.phone, pat.concern, now, now);
+      
+      const patId = (seedDb.prepare("SELECT last_insert_rowid() as id").get() as { id: number }).id;
+      
+      // Seed an appointment for each preview patient
+      seedDb.prepare(`
+        INSERT INTO appointments (tenant_id, name, phone, service, preferredDate, status, paymentStatus, createdAt, updatedAt)
+        VALUES ('apollo_preview', ?, ?, ?, ?, 'confirmed', 'paid', ?, ?)
+      `).run(pat.name, pat.phone, pat.concern, now, now, now);
+
+      const apptId = (seedDb.prepare("SELECT last_insert_rowid() as id").get() as { id: number }).id;
+
+      // Seed a billing transaction / revenue for each preview patient (₹500, ₹1200, ₹350)
+      const amounts: Record<string, number> = {
+        "Rahul Sharma": 500,
+        "Priya Das": 1200,
+        "Arjun Roy": 350
+      };
+      const amount = amounts[pat.name] || 500;
+      const idx = pat.name === "Rahul Sharma" ? "000001" : pat.name === "Priya Das" ? "000002" : "000003";
+      const invoiceNum = `AP-PREVIEW-${idx}`;
+
+      seedDb.prepare(`
+        INSERT INTO billing_transactions (tenant_id, patient_id, appointment_id, transaction_type, amount, payment_method, status, invoice_number, created_at)
+        VALUES ('apollo_preview', ?, ?, 'consultation', ?, 'cash', 'paid', ?, ?)
+      `).run(patId, apptId, amount, invoiceNum, now);
+    }
+    console.log(`Seed: created ${samplePatients.length} sample patients and 3 preview patients`);
 
     console.log(`Seed: created ${doctors.length} doctor accounts`);
 

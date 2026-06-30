@@ -61,6 +61,7 @@ export const appointments = sqliteTable("appointments", {
   appointmentNumber: integer("appointmentNumber"),
   amountPaid: integer("amountPaid"),
   amountDue: integer("amountDue"),
+  tenantId: text("tenant_id").default("apollo-aranghata").notNull(),
 }, (table) => [
   index("appointments_deleted_at_created_at_idx").on(table.deletedAt, table.createdAt),
   index("appointments_doctor_id_idx").on(table.doctorId),

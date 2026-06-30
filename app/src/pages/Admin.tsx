@@ -84,10 +84,15 @@ export default function Admin() {
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <h1 className="text-xl font-bold bg-gradient-to-r from-apollo-blue to-apollo-orange bg-clip-text text-transparent">
-              Apollo Clinic
+              {user?.role === "developer_preview" ? "Apollo Preview" : "Apollo Clinic"}
             </h1>
             {user?.role === "developer_preview" && (
-              <span className="px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-300 animate-pulse">
+              <span className="px-3 py-1 rounded-full text-xs font-extrabold bg-rose-600 text-white border border-rose-700 uppercase tracking-wider animate-pulse shadow-sm">
+                PREVIEW TENANT
+              </span>
+            )}
+            {user?.role === "developer_preview" && (
+              <span className="px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-300">
                 Developer Preview
               </span>
             )}

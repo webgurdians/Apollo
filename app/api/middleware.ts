@@ -48,7 +48,7 @@ const requireAuth = t.middleware(async (opts) => {
     }
   }
 
-  return next({ ctx: { ...ctx, user: ctx.user } });
+  return next({ ctx: { ...ctx, user: ctx.user, tenantId: ctx.tenantId } });
 });
 
 function requireRole(roles: string[]) {
@@ -62,7 +62,7 @@ function requireRole(roles: string[]) {
       });
     }
 
-    return next({ ctx: { ...ctx, user: ctx.user } });
+    return next({ ctx: { ...ctx, user: ctx.user, tenantId: ctx.tenantId } });
   });
 }
 

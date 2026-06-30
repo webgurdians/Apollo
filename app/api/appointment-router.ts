@@ -36,7 +36,7 @@ export const createAppointmentInput = z.object({
   amountDue: z.number().optional(),
 }).strict();
 
-async function getNextAppointmentNumber(db: DrizzleDB, doctorId: number | null, preferredDate: Date): Promise<number> {
+async function getNextAppointmentNumber(db: DrizzleDB, doctorId: number | null, preferredDate: Date, tenantId: string): Promise<number> {
   const startOfDay = new Date(preferredDate);
   startOfDay.setHours(0, 0, 0, 0);
 
@@ -53,6 +53,7 @@ async function getNextAppointmentNumber(db: DrizzleDB, doctorId: number | null, 
     .where(
       and(
         doctorId ? eq(appointments.doctorId, doctorId) : isNull(appointments.doctorId),
+        eq(appointments.tenantId, tenantId),
         isNull(appointments.deletedAt)
       )
     );
@@ -193,7 +194,7 @@ export const appointmentRouter = createRouter({
         }
       }
 
-      // Upsert Patient Profile - match by both name and phone
+      // Upsert Patient Profile - match by name, phone and tenantId
       const existingPatients = await db
         .select()
         .from(patients)
@@ -201,6 +202,7 @@ export const appointmentRouter = createRouter({
           and(
             eq(patients.name, input.name),
             eq(patients.phone, input.phone),
+            eq(patients.tenantId, ctx.tenantId),
             isNull(patients.deletedAt)
           )
         )
@@ -221,6 +223,7 @@ export const appointmentRouter = createRouter({
           .where(eq(patients.id, patientId));
       } else {
         const [insertedPatient] = await db.insert(patients).values({
+          tenantId: ctx.tenantId,
           name: input.name,
           age: input.age ?? 30,
           gender: input.gender || "Not Specified",
@@ -237,9 +240,10 @@ export const appointmentRouter = createRouter({
       const preferredDate = new Date(input.preferredDate);
       
       // Calculate token number only if it is paid online
-      const appointmentNum = isPaid ? await getNextAppointmentNumber(db, doctorId, preferredDate) : null;
+      const appointmentNum = isPaid ? await getNextAppointmentNumber(db, doctorId, preferredDate, ctx.tenantId) : null;
 
       const [insertedApt] = await db.insert(appointments).values({
+        tenantId: ctx.tenantId,
         name: input.name,
         phone: input.phone,
         address: input.address || null,
@@ -291,7 +295,7 @@ export const appointmentRouter = createRouter({
       return { success: true };
     }),
 
-  list: staffQuery.query(async () => {
+  list: staffQuery.query(async ({ ctx }) => {
     const db = getDb();
     const results = await db
       .select({
@@ -319,7 +323,7 @@ export const appointmentRouter = createRouter({
       })
       .from(appointments)
       .leftJoin(doctors, eq(appointments.doctorId, doctors.id))
-      .where(isNull(appointments.deletedAt))
+      .where(and(isNull(appointments.deletedAt), eq(appointments.tenantId, ctx.tenantId)))
       .orderBy(desc(appointments.createdAt));
     return results;
   }),

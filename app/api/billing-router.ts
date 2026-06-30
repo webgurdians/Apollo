@@ -226,7 +226,7 @@ export const billingRouter = createRouter({
       return { success: true };
     }),
 
-  listTransactions: founderQuery.query(async () => {
+  listTransactions: founderQuery.query(async ({ ctx }) => {
     const db = getDb();
     return await db.select({
       id: billingTransactions.id,
@@ -245,6 +245,7 @@ export const billingRouter = createRouter({
     })
     .from(billingTransactions)
     .leftJoin(patients, eq(billingTransactions.patientId, patients.id))
+    .where(eq(billingTransactions.tenantId, ctx.tenantId))
     .orderBy(desc(billingTransactions.createdAt))
     .all();
   }),
@@ -266,13 +267,18 @@ export const billingRouter = createRouter({
     .mutation(async ({ input, ctx }) => {
       const db = getDb();
 
-      // Generate invoice number sequentially (e.g. AP-YYYY-XXXXXX)
-      const currentYear = new Date().getFullYear();
-      const prefix = `AP-${currentYear}-`;
+      // Generate invoice number sequentially (e.g. AP-YYYY-XXXXXX or AP-PREVIEW-XXXXXX)
+      let prefix = "";
+      if (ctx.tenantId === "apollo_preview") {
+        prefix = "AP-PREVIEW-";
+      } else {
+        const currentYear = new Date().getFullYear();
+        prefix = `AP-${currentYear}-`;
+      }
       
       const matches = await db.select()
         .from(billingTransactions)
-        .where(sql`invoice_number LIKE ${prefix + "%"}`)
+        .where(and(eq(billingTransactions.tenantId, ctx.tenantId), sql`invoice_number LIKE ${prefix + "%"}`))
         .all();
 
       let maxSeq = 0;
@@ -289,7 +295,7 @@ export const billingRouter = createRouter({
       const invoiceNumber = `${prefix}${paddedSeq}`;
 
       const [newTx] = await db.insert(billingTransactions).values({
-        tenantId: "default",
+        tenantId: ctx.tenantId,
         patientId: input.patientId,
         appointmentId: input.appointmentId || null,
         medicineOrderId: input.medicineOrderId || null,

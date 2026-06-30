@@ -33,9 +33,9 @@ async function validateMetaCredentials(token: string, phoneId: string): Promise<
 }
 
 export const whatsappRouter = createRouter({
-  getSettings: founderQuery.query(async () => {
+  getSettings: founderQuery.query(async ({ ctx }) => {
     const db = getDb();
-    const settings = await db.select().from(whatsappSettings).where(eq(whatsappSettings.tenantId, "default")).get();
+    const settings = await db.select().from(whatsappSettings).where(eq(whatsappSettings.tenantId, ctx.tenantId)).get();
     if (!settings) {
       return {
         metaAccessTokenEncrypted: "",
@@ -73,7 +73,7 @@ export const whatsappRouter = createRouter({
       }
 
       const encryptedToken = encrypt(input.metaAccessToken);
-      const existing = await db.select().from(whatsappSettings).where(eq(whatsappSettings.tenantId, "default")).get();
+      const existing = await db.select().from(whatsappSettings).where(eq(whatsappSettings.tenantId, ctx.tenantId)).get();
 
       if (existing) {
         await db.update(whatsappSettings)
@@ -87,7 +87,7 @@ export const whatsappRouter = createRouter({
           .where(eq(whatsappSettings.id, existing.id));
       } else {
         await db.insert(whatsappSettings).values({
-          tenantId: "default",
+          tenantId: ctx.tenantId,
           metaAccessTokenEncrypted: encryptedToken,
           phoneNumberId: input.phoneNumberId,
           businessAccountId: input.businessAccountId,
@@ -98,11 +98,11 @@ export const whatsappRouter = createRouter({
       return { success: true };
     }),
 
-  listTemplates: founderQuery.query(async () => {
+  listTemplates: founderQuery.query(async ({ ctx }) => {
     const db = getDb();
     return await db.select()
       .from(whatsappTemplates)
-      .where(isNull(whatsappTemplates.deletedAt))
+      .where(and(isNull(whatsappTemplates.deletedAt), eq(whatsappTemplates.tenantId, ctx.tenantId)))
       .orderBy(desc(whatsappTemplates.createdAt))
       .all();
   }),
@@ -124,7 +124,7 @@ export const whatsappRouter = createRouter({
         .where(
           and(
             eq(whatsappTemplates.templateKey, input.templateKey),
-            eq(whatsappTemplates.tenantId, "default"),
+            eq(whatsappTemplates.tenantId, ctx.tenantId),
             isNull(whatsappTemplates.deletedAt)
           )
         )
@@ -139,12 +139,12 @@ export const whatsappRouter = createRouter({
         .where(
           and(
             eq(whatsappTemplates.templateKey, input.templateKey),
-            eq(whatsappTemplates.tenantId, "default")
+            eq(whatsappTemplates.tenantId, ctx.tenantId)
           )
         );
 
       const [newTpl] = await db.insert(whatsappTemplates).values({
-        tenantId: "default",
+        tenantId: ctx.tenantId,
         name: input.name,
         category: input.category,
         templateKey: input.templateKey,
@@ -155,7 +155,7 @@ export const whatsappRouter = createRouter({
 
       // Audit Log
       await db.insert(whatsappAuditLogs).values({
-        tenantId: "default",
+        tenantId: ctx.tenantId,
         userId: ctx.user.id,
         action: "template_modified",
         targetId: newTpl.id,
@@ -174,7 +174,7 @@ export const whatsappRouter = createRouter({
         .where(eq(whatsappTemplates.id, input.id));
 
       await db.insert(whatsappAuditLogs).values({
-        tenantId: "default",
+        tenantId: ctx.tenantId,
         userId: ctx.user.id,
         action: "template_modified",
         targetId: input.id,
@@ -199,7 +199,7 @@ export const whatsappRouter = createRouter({
           .where(
             and(
               eq(whatsappTemplates.templateKey, target.templateKey),
-              eq(whatsappTemplates.tenantId, "default")
+              eq(whatsappTemplates.tenantId, ctx.tenantId)
             )
           );
       }
@@ -219,7 +219,7 @@ export const whatsappRouter = createRouter({
         offset: z.number().default(0),
       })
     )
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       const db = getDb();
       let query = db.select({
         id: whatsappMessages.id,
@@ -232,10 +232,11 @@ export const whatsappRouter = createRouter({
         sentAt: whatsappMessages.sentAt,
       })
       .from(whatsappMessages)
-      .leftJoin(patients, eq(whatsappMessages.patientId, patients.id));
+      .leftJoin(patients, eq(whatsappMessages.patientId, patients.id))
+      .where(eq(whatsappMessages.tenantId, ctx.tenantId));
 
       if (input.patientId) {
-        query = query.where(eq(whatsappMessages.patientId, input.patientId)) as any;
+        query = query.where(and(eq(whatsappMessages.patientId, input.patientId), eq(whatsappMessages.tenantId, ctx.tenantId))) as any;
       }
 
       return await query
@@ -245,11 +246,11 @@ export const whatsappRouter = createRouter({
         .all();
     }),
 
-  listCampaigns: founderQuery.query(async () => {
+  listCampaigns: founderQuery.query(async ({ ctx }) => {
     const db = getDb();
     return await db.select()
       .from(whatsappCampaigns)
-      .where(isNull(whatsappCampaigns.deletedAt))
+      .where(and(isNull(whatsappCampaigns.deletedAt), eq(whatsappCampaigns.tenantId, ctx.tenantId)))
       .orderBy(desc(whatsappCampaigns.scheduledAt))
       .all();
   }),
@@ -271,13 +272,14 @@ export const whatsappRouter = createRouter({
       const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
       if (input.segmentType === "all_patients") {
-        targetPatients = await db.select().from(patients).where(isNull(patients.deletedAt)).all();
+        targetPatients = await db.select().from(patients).where(and(isNull(patients.deletedAt), eq(patients.tenantId, ctx.tenantId))).all();
       } else if (input.segmentType === "recent_patients") {
         targetPatients = await db.select()
           .from(patients)
           .where(
             and(
               isNull(patients.deletedAt),
+              eq(patients.tenantId, ctx.tenantId),
               sql`created_at >= ${thirtyDaysAgo.getTime()}`
             )
           )
@@ -289,6 +291,7 @@ export const whatsappRouter = createRouter({
           c: count()
         })
         .from(appointments)
+        .where(eq(appointments.tenantId, ctx.tenantId))
         .groupBy(appointments.phone)
         .all();
 
@@ -299,6 +302,7 @@ export const whatsappRouter = createRouter({
             .where(
               and(
                 isNull(patients.deletedAt),
+                eq(patients.tenantId, ctx.tenantId),
                 sql`phone IN (${returningPhones.join(",")})`
               )
             )
@@ -310,6 +314,7 @@ export const whatsappRouter = createRouter({
           .where(
             and(
               isNull(patients.deletedAt),
+              eq(patients.tenantId, ctx.tenantId),
               eq(patients.status, "waiting")
             )
           )
@@ -323,6 +328,7 @@ export const whatsappRouter = createRouter({
             .where(
               and(
                 isNull(patients.deletedAt),
+                eq(patients.tenantId, ctx.tenantId),
                 sql`id IN (${medIds.join(",")})`
               )
             )
@@ -342,7 +348,7 @@ export const whatsappRouter = createRouter({
       const scheduledTime = input.scheduledAt ? new Date(input.scheduledAt) : new Date();
 
       const [campaign] = await db.insert(whatsappCampaigns).values({
-        tenantId: "default",
+        tenantId: ctx.tenantId,
         name: input.name,
         templateId: input.templateId,
         segmentType: input.segmentType,
@@ -356,7 +362,7 @@ export const whatsappRouter = createRouter({
       for (const pId of consentedIds) {
         try {
           await db.insert(whatsappCampaignRecipients).values({
-            tenantId: "default",
+            tenantId: ctx.tenantId,
             campaignId: campaign.id,
             patientId: pId,
             status: "queued",
@@ -366,7 +372,7 @@ export const whatsappRouter = createRouter({
 
       // Audit Log
       await db.insert(whatsappAuditLogs).values({
-        tenantId: "default",
+        tenantId: ctx.tenantId,
         userId: ctx.user.id,
         action: "campaign_created",
         targetId: campaign.id,
@@ -412,7 +418,7 @@ export const whatsappRouter = createRouter({
         .where(eq(whatsappCampaigns.id, input.id));
 
       await db.insert(whatsappAuditLogs).values({
-        tenantId: "default",
+        tenantId: ctx.tenantId,
         userId: ctx.user.id,
         action: "campaign_edited",
         targetId: input.id,
@@ -450,7 +456,7 @@ export const whatsappRouter = createRouter({
         communicationPreference: z.string(),
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const db = getDb();
       const existing = await db.select().from(patientPreferences).where(eq(patientPreferences.patientId, input.patientId)).get();
 
@@ -465,7 +471,7 @@ export const whatsappRouter = createRouter({
         await db.update(patientPreferences).set(payload).where(eq(patientPreferences.id, existing.id));
       } else {
         await db.insert(patientPreferences).values({
-          tenantId: "default",
+          tenantId: ctx.tenantId,
           patientId: input.patientId,
           ...payload,
         });
