@@ -604,8 +604,24 @@ try {
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `).run("developer", passwordHash, "Developer", "platform_owner", now, now, now);
   }
+
+  // 4. Ensure developer preview user exists with 'developer_preview' role
+  const previewExists = fixDb.prepare("SELECT COUNT(*) as count FROM users WHERE username = 'preview'").get() as { count: number };
+  if (previewExists.count === 0) {
+    const now = Date.now();
+    const previewPass = "preview123";
+    const salt = crypto.randomBytes(16).toString("hex");
+    const hash = crypto.scryptSync(previewPass, salt, 64).toString("hex");
+    const passwordHash = `${salt}:${hash}`;
+    
+    fixDb.prepare(`
+      INSERT INTO users (username, passwordHash, name, role, createdAt, updatedAt, lastSignInAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run("preview", passwordHash, "Developer Preview", "developer_preview", now, now, now);
+    console.log("Seed: created developer preview user (developer_preview role)");
+  }
 } catch (e) {
-  console.error("Failed to patch developer and admin accounts:", e);
+  console.error("Failed to patch developer, admin, and preview accounts:", e);
 }
 
 // Seed default OCC tables (Tenants, Feature Flags, and Killswitches) safely on every boot

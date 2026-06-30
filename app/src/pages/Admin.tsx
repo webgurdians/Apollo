@@ -63,7 +63,18 @@ export default function Admin() {
     { value: "report_dispatch", label: "Patient Reports", icon: <FileText className="w-4 h-4" />, content: <ReportDispatchSection /> },
   ];
 
-  const enabledTabs = allTabs.filter((t) => flags?.[t.value] !== false);
+  const enabledTabs = allTabs.filter((t) => {
+    if (t.value === "revenue") {
+      return flags?.revenue === true || flags?.apollo_revenue_enabled === true;
+    }
+    if (t.value === "whatsapp") {
+      return flags?.whatsapp === true || flags?.apollo_whatsapp_enabled === true || flags?.apollo_campaigns_enabled === true;
+    }
+    if (t.value === "billing") {
+      return flags?.billing === true || flags?.apollo_billing_v2_enabled === true;
+    }
+    return flags?.[t.value] !== false;
+  });
 
   const firstEnabled = enabledTabs[0]?.value || "appointments";
 

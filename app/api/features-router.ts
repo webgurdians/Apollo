@@ -68,10 +68,14 @@ export const featuresRouter = createRouter({
     // 3. Integrate Global Killswitches
     if (isWhatsappKilled) {
       flags["whatsapp"] = false;
+      flags["apollo_whatsapp_enabled"] = false;
+      flags["apollo_campaigns_enabled"] = false;
     }
     if (isPaymentsKilled) {
       flags["billing"] = false;
       flags["revenue"] = false;
+      flags["apollo_revenue_enabled"] = false;
+      flags["apollo_billing_v2_enabled"] = false;
     }
 
     return flags;
