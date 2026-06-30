@@ -158,6 +158,7 @@ export type InsertDoctor = typeof doctors.$inferInsert;
 
 export const patients = sqliteTable("patients", {
   id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  tenantId: text("tenant_id").default("apollo-aranghata").notNull(),
   name: text("name").notNull(),
   age: integer("age").notNull(),
   gender: text("gender").notNull(),

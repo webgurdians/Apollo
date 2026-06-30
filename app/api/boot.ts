@@ -558,6 +558,9 @@ try {
     try {
       sqlite.exec("ALTER TABLE appointments ADD COLUMN tenant_id TEXT DEFAULT 'apollo-aranghata' NOT NULL;");
     } catch (e) {}
+    try {
+      sqlite.exec("ALTER TABLE patients ADD COLUMN tenant_id TEXT DEFAULT 'apollo-aranghata' NOT NULL;");
+    } catch (e) {}
 
     logInfo("Manual database schema fallback applied successfully.");
   } catch (fallbackError) {
@@ -755,6 +758,54 @@ try {
     }
   }
 } catch {}
+
+// Ensure preview tenant mock data is seeded
+try {
+  const checkDb = getDb().$client;
+  const previewPatientsExists = checkDb.prepare("SELECT COUNT(*) as count FROM patients WHERE tenant_id = 'apollo_preview'").get() as { count: number };
+  if (previewPatientsExists.count === 0) {
+    const now = Date.now();
+    const previewPatients = [
+      { name: "Rahul Sharma", age: 40, gender: "Male", phone: "9999911111", concern: "Consultation" },
+      { name: "Priya Das", age: 28, gender: "Female", phone: "9999922222", concern: "Follow-up" },
+      { name: "Arjun Roy", age: 35, gender: "Male", phone: "9999933333", concern: "Walk-in" }
+    ];
+    for (const pat of previewPatients) {
+      checkDb.prepare(`
+        INSERT INTO patients (tenant_id, name, age, gender, phone, concern, status, createdAt, updatedAt)
+        VALUES ('apollo_preview', ?, ?, ?, ?, ?, 'waiting', ?, ?)
+      `).run(pat.name, pat.age, pat.gender, pat.phone, pat.concern, now, now);
+      
+      const patId = (checkDb.prepare("SELECT last_insert_rowid() as id").get() as { id: number }).id;
+      
+      // Seed an appointment for each preview patient
+      checkDb.prepare(`
+        INSERT INTO appointments (tenant_id, name, phone, service, preferredDate, status, paymentStatus, createdAt, updatedAt)
+        VALUES ('apollo_preview', ?, ?, ?, ?, 'confirmed', 'paid', ?, ?)
+      `).run(pat.name, pat.phone, pat.concern, now, now, now);
+
+      const apptId = (checkDb.prepare("SELECT last_insert_rowid() as id").get() as { id: number }).id;
+
+      // Seed a billing transaction / revenue for each preview patient (₹500, ₹1200, ₹350)
+      const amounts: Record<string, number> = {
+        "Rahul Sharma": 500,
+        "Priya Das": 1200,
+        "Arjun Roy": 350
+      };
+      const amount = amounts[pat.name] || 500;
+      const idx = pat.name === "Rahul Sharma" ? "000001" : pat.name === "Priya Das" ? "000002" : "000003";
+      const invoiceNum = `AP-PREVIEW-${idx}`;
+
+      checkDb.prepare(`
+        INSERT INTO billing_transactions (tenant_id, patient_id, appointment_id, transaction_type, amount, payment_method, status, invoice_number, created_at)
+        VALUES ('apollo_preview', ?, ?, 'consultation', ?, 'cash', 'paid', ?, ?)
+      `).run(patId, apptId, amount, invoiceNum, now);
+    }
+    logInfo("Seed: created 3 preview patients, appointments, and billing transactions");
+  }
+} catch (e) {
+  logError("Failed to seed preview mock data:", e);
+}
 
 // One-time fix: if patients table is empty, seed default patients so they are searchable for uploads
 try {
