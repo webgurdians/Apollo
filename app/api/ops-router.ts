@@ -62,7 +62,8 @@ export const opsRouter = createRouter({
   // 2. Feature Flags
   getFeatureFlags: founderQuery.query(async () => {
     const db = getDb();
-    return await db.select().from(featureFlags);
+    // OCC only manages production tenant flags — preview tenant flags are seeded automatically
+    return await db.select().from(featureFlags).where(eq(featureFlags.tenantId, "apollo-aranghata"));
   }),
 
   toggleFeatureFlag: founderMutation
