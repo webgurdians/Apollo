@@ -239,8 +239,8 @@ export const appointmentRouter = createRouter({
       const isPartial = input.paymentMethod === "partial";
       const preferredDate = new Date(input.preferredDate);
       
-      // Calculate token number only if it is paid online
-      const appointmentNum = isPaid ? await getNextAppointmentNumber(db, doctorId, preferredDate, ctx.tenantId) : null;
+      // Assign token number for paid and partial bookings — both are confirmed
+      const appointmentNum = (isPaid || isPartial) ? await getNextAppointmentNumber(db, doctorId, preferredDate, ctx.tenantId) : null;
 
       const [insertedApt] = await db.insert(appointments).values({
         tenantId: ctx.tenantId,
@@ -256,8 +256,9 @@ export const appointmentRouter = createRouter({
         doctorId: doctorId,
         age: input.age || null,
         message: input.message || null,
-        status: isPaid ? "confirmed" : "pending",
-        paymentStatus: isPaid ? "paid" : "pending",
+        // Partial payments go straight to Appointments tab (confirmed), not Enquiries (pending)
+        status: (isPaid || isPartial) ? "confirmed" : "pending",
+        paymentStatus: isPaid ? "paid" : isPartial ? "partial" : "pending",
         appointmentNumber: appointmentNum,
         amountPaid: isPartial ? (input.amountPaid || 0) : null,
         amountDue: isPartial ? (input.amountDue || 0) : null,
@@ -371,7 +372,7 @@ export const appointmentRouter = createRouter({
     .input(
       z.object({
         id: z.number(),
-        paymentStatus: z.enum(["pending", "paid", "failed"]),
+        paymentStatus: z.enum(["pending", "paid", "failed", "partial"]),
       })
     )
     .mutation(async ({ input, ctx }) => {
@@ -387,13 +388,19 @@ export const appointmentRouter = createRouter({
         throw new TRPCError({ code: "NOT_FOUND", message: "Appointment not found" });
       }
 
-      const updates: Partial<{ paymentStatus: string; status: string; appointmentNumber: number | null }> = { paymentStatus: input.paymentStatus };
+      const updates: Partial<{ paymentStatus: string; status: string; appointmentNumber: number | null; amountPaid: number | null; amountDue: number | null }> = { paymentStatus: input.paymentStatus };
 
-      // If marked as paid, move straight to appointment tab as confirmed and assign token number if not already assigned
+      // If marked as paid, confirm the appointment and assign token if not already done
       if (input.paymentStatus === "paid") {
         updates.status = "confirmed";
         if (!apt.appointmentNumber) {
-          updates.appointmentNumber = await getNextAppointmentNumber(db, apt.doctorId, new Date(apt.preferredDate));
+          updates.appointmentNumber = await getNextAppointmentNumber(db, apt.doctorId, new Date(apt.preferredDate), apt.tenantId);
+        }
+        // If this was previously a partial payment, clear the due amount and set full paid amount
+        if (apt.amountDue !== null && apt.amountDue > 0) {
+          const totalFee = (apt.amountPaid ?? 0) + (apt.amountDue ?? 0);
+          updates.amountPaid = totalFee;
+          updates.amountDue = 0;
         }
       }
 
@@ -405,7 +412,7 @@ export const appointmentRouter = createRouter({
       if (input.paymentStatus === "paid") {
         const existingBill = await db.select().from(bills).where(eq(bills.appointmentId, input.id)).limit(1);
         if (existingBill.length === 0) {
-          await ensureBillCreated(db, input.id, "cash"); // default to cash for clinic updates
+          await ensureBillCreated(db, input.id, "cash");
         } else {
           await db.update(bills).set({ status: "paid" }).where(eq(bills.appointmentId, input.id));
         }

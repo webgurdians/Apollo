@@ -42,6 +42,7 @@ const paymentColors: Record<string, string> = {
   pending: "bg-yellow-100 text-yellow-700 hover:bg-yellow-100",
   paid: "bg-green-100 text-green-700 hover:bg-green-100",
   failed: "bg-red-100 text-red-700 hover:bg-red-100",
+  partial: "bg-amber-100 text-amber-700 hover:bg-amber-100",
 };
 
 export default function AppointmentsSection() {
@@ -116,8 +117,9 @@ export default function AppointmentsSection() {
     }
   };
 
+  // Show confirmed, paid, partial, or completed appointments — never pending/unpaid
   const confirmedOrPaidAppointments = appointments?.filter(
-    (apt) => apt.status === "confirmed" || apt.paymentStatus === "paid" || apt.status === "completed"
+    (apt) => apt.status === "confirmed" || apt.paymentStatus === "paid" || apt.paymentStatus === "partial" || apt.status === "completed"
   ) || [];
 
   if (isLoading) {
@@ -196,15 +198,16 @@ export default function AppointmentsSection() {
                 <TableCell>
                   <Select
                     value={apt.paymentStatus}
-                    onValueChange={(val: "pending" | "paid" | "failed") =>
+                    onValueChange={(val: "pending" | "paid" | "failed" | "partial") =>
                       updatePayment.mutate({ id: apt.id, paymentStatus: val })
                     }
                   >
-                    <SelectTrigger className={`w-28 h-8 text-xs ${paymentColors[apt.paymentStatus]}`}>
+                    <SelectTrigger className={`w-28 h-8 text-xs ${paymentColors[apt.paymentStatus] || paymentColors.pending}`}>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="partial">Partial</SelectItem>
                       <SelectItem value="paid">Paid</SelectItem>
                       <SelectItem value="failed">Failed</SelectItem>
                     </SelectContent>
@@ -254,7 +257,7 @@ export default function AppointmentsSection() {
                       variant="ghost"
                       size="sm"
                       className="h-8 w-8 p-0 text-apollo-blue"
-                      title="Generate & Send Bill via WhatsApp"
+                      title="Generate Receipt PDF"
                       onClick={() => {
                         const price = apt.doctorFees ?? servicePrices[apt.service] ?? 500;
                         if (confirm(`Generate a bill for ₹${price} and send to patient?`)) {
@@ -265,14 +268,22 @@ export default function AppointmentsSection() {
                               status: apt.paymentStatus === "paid" ? "paid" : "unpaid",
                             },
                             {
-                              onSuccess: (data) => {
+                              onSuccess: () => {
                                 toast.success("Bill generated successfully!");
-                                const statusText = apt.paymentStatus === "paid" ? "Paid" : "Pending Payment";
-                                const payId = apt.paymentStatus === "paid" ? `pay_${Date.now()}` : `clinic_${Date.now()}`;
                                 const formattedDate = apt.preferredDate ? format(new Date(apt.preferredDate), "dd/MM/yyyy") : format(new Date(), "dd/MM/yyyy");
-                                
-                                const receiptUrl = `${getBaseUrl()}/api/receipts/pdf?paymentId=${payId}&amount=${price}&phone=${apt.phone}&patientName=${encodeURIComponent(apt.name)}&service=${encodeURIComponent(apt.service)}&date=${encodeURIComponent(formattedDate)}&status=${encodeURIComponent(statusText)}`;
-                                
+                                const payId = apt.paymentStatus === "paid" ? `pay_${Date.now()}` : `clinic_${Date.now()}`;
+
+                                // Build status text reflecting actual payment state
+                                let statusText = "Pending Payment";
+                                if (apt.paymentStatus === "paid") statusText = "Paid";
+                                else if (apt.paymentStatus === "partial") statusText = `Partial (₹${apt.amountPaid} paid)`;
+
+                                // Pass actual amountPaid / amountDue so receipt reflects reality
+                                const amountPaidParam = apt.amountPaid !== null && apt.amountPaid !== undefined ? `&amountPaid=${apt.amountPaid}` : "";
+                                const amountDueParam = apt.amountDue !== null && apt.amountDue !== undefined ? `&amountDue=${apt.amountDue}` : "";
+                                const price2 = apt.doctorFees ?? servicePrices[apt.service] ?? 500;
+
+                                const receiptUrl = `${getBaseUrl()}/api/receipts/pdf?paymentId=${payId}&amount=${price2}&phone=${apt.phone}&patientName=${encodeURIComponent(apt.name)}&service=${encodeURIComponent(apt.service)}&date=${encodeURIComponent(formattedDate)}&status=${encodeURIComponent(statusText)}${amountPaidParam}${amountDueParam}`;
                                 window.open(receiptUrl, "_blank");
                               },
                             }
@@ -282,6 +293,22 @@ export default function AppointmentsSection() {
                     >
                       <Receipt className="w-4 h-4" />
                     </Button>
+                    {/* Mark Due as Paid — only visible for partial payments */}
+                    {apt.paymentStatus === "partial" && apt.amountDue !== null && apt.amountDue > 0 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 px-2 text-xs text-green-700 bg-green-50 hover:bg-green-100 border border-green-200 rounded"
+                        title={`Mark ₹${apt.amountDue} due as paid`}
+                        onClick={() => {
+                          if (confirm(`Patient has paid the remaining ₹${apt.amountDue}. Mark as fully paid?`)) {
+                            updatePayment.mutate({ id: apt.id, paymentStatus: "paid" });
+                          }
+                        }}
+                      >
+                        Pay ₹{apt.amountDue} Due
+                      </Button>
+                    )}
                     <Button
                       variant="ghost"
                       size="sm"

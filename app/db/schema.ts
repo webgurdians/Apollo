@@ -47,7 +47,7 @@ export const appointments = sqliteTable("appointments", {
   status: text("status", { enum: ["pending", "confirmed", "completed", "cancelled"] })
     .default("pending")
     .notNull(),
-  paymentStatus: text("paymentStatus", { enum: ["pending", "paid", "failed"] })
+  paymentStatus: text("paymentStatus", { enum: ["pending", "paid", "failed", "partial"] })
     .default("pending")
     .notNull(),
   createdAt: integer("createdAt", { mode: "timestamp" })
