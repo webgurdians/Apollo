@@ -6,6 +6,7 @@ import { eq, desc, and, isNull } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { logActivity } from "./lib/activity";
 import { sendWhatsAppPrescription } from "./lib/whatsapp";
+import { queueWhatsAppMessage } from "./lib/queue-helper";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type DrizzleDB = ReturnType<typeof getDb>;
 type AppointmentRow = {
@@ -205,7 +206,9 @@ export const appointmentRouter = createRouter({
         )
         .limit(1);
 
+      let patientId: number;
       if (existingPatients.length > 0) {
+        patientId = existingPatients[0].id;
         await db
           .update(patients)
           .set({
@@ -215,9 +218,9 @@ export const appointmentRouter = createRouter({
             assignedDoctorId: doctorId || existingPatients[0].assignedDoctorId,
             updatedAt: new Date(),
           })
-          .where(eq(patients.id, existingPatients[0].id));
+          .where(eq(patients.id, patientId));
       } else {
-        await db.insert(patients).values({
+        const [insertedPatient] = await db.insert(patients).values({
           name: input.name,
           age: input.age ?? 30,
           gender: input.gender || "Not Specified",
@@ -225,7 +228,8 @@ export const appointmentRouter = createRouter({
           concern: input.message || input.service,
           status: "waiting",
           assignedDoctorId: doctorId,
-        });
+        }).returning({ id: patients.id });
+        patientId = insertedPatient.id;
       }
 
       const isPaid = input.paymentMethod === "online";
@@ -258,7 +262,6 @@ export const appointmentRouter = createRouter({
       if (isPaid && insertedApt) {
         await ensureBillCreated(db, insertedApt.id, "online");
       } else if (isPartial && insertedApt) {
-        // Create a bill with paid status for the paid portion
         const paidAmount = input.amountPaid || 0;
         await db.insert(bills).values({
           appointmentId: insertedApt.id,
@@ -272,29 +275,17 @@ export const appointmentRouter = createRouter({
         });
       }
 
-      // Automatically send a WhatsApp message to the customer with their receipt download link
+      // Automatically queue a WhatsApp message for confirmation
       try {
-        let price = 500;
-        if (doctorId) {
-          const docRecord = await db.select({ fees: doctors.fees }).from(doctors).where(eq(doctors.id, doctorId)).limit(1);
-          if (docRecord.length > 0 && docRecord[0].fees) {
-            price = docRecord[0].fees;
-          }
-        }
-
-        const payId = isPaid ? `pay_${Date.now()}` : `clinic_${Date.now()}`;
-        const paymentStatusText = isPaid ? "Paid" : "Pending Payment";
         const formattedDate = preferredDate.toLocaleDateString();
-
-        const requestUrl = new URL(ctx.req.url);
-        const backendOrigin = requestUrl.origin;
-        const receiptUrl = `${backendOrigin}/api/receipts/pdf?paymentId=${payId}&amount=${price}&phone=${input.phone}&patientName=${encodeURIComponent(input.name)}&service=${encodeURIComponent(input.service)}&date=${encodeURIComponent(formattedDate)}&status=${encodeURIComponent(paymentStatusText)}`;
-
-        const whatsappMsg = `*APOLLO CLINIC PAYMENT RECEIPT*\n\nDear ${input.name},\nThank you for booking your appointment at Apollo Clinic.\n\n*Service:* ${input.service}\n*Date:* ${formattedDate}\n*Amount:* Rs. ${price}\n*Payment Status:* ${paymentStatusText}\n\nYou can view and download your digital payment receipt here:\n${receiptUrl}\n\nThank you for choosing Apollo Clinic!`;
-
-        await sendWhatsAppPrescription(input.phone, whatsappMsg);
+        await queueWhatsAppMessage({
+          patientId: patientId,
+          templateKey: "appointment_confirmation",
+          parameters: [input.name, formattedDate, input.service],
+          idempotencyKey: `appointment-${insertedApt.id}-confirmation`,
+        });
       } catch (err) {
-        console.error("Failed to send WhatsApp booking receipt:", err);
+        console.error("Failed to queue WhatsApp booking message:", err);
       }
 
       return { success: true };
@@ -342,10 +333,31 @@ export const appointmentRouter = createRouter({
     )
     .mutation(async ({ input, ctx }) => {
       const db = getDb();
+      
+      const apt = await db.select().from(appointments).where(eq(appointments.id, input.id)).get();
+      
       await db
         .update(appointments)
         .set({ status: input.status })
         .where(eq(appointments.id, input.id));
+
+      if (apt && input.status === "cancelled") {
+        const pt = await db.select().from(patients).where(and(eq(patients.name, apt.name), eq(patients.phone, apt.phone))).limit(1);
+        if (pt.length > 0) {
+          try {
+            const formattedDate = new Date(apt.preferredDate).toLocaleDateString();
+            await queueWhatsAppMessage({
+              patientId: pt[0].id,
+              templateKey: "appointment_cancellation",
+              parameters: [apt.name, formattedDate],
+              idempotencyKey: `appointment-${apt.id}-cancellation`,
+            });
+          } catch (err) {
+            console.error("Failed to queue cancellation WhatsApp message:", err);
+          }
+        }
+      }
+
       await logActivity(ctx.user, "update", "appointment", input.id,
         `Updated status to ${input.status}`);
       return { success: true };

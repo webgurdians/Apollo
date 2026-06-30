@@ -10,6 +10,7 @@ import { medicineOrdersRouter } from "./medicine-orders-router";
 import { reportsRouter } from "./reports-router";
 import { featuresRouter } from "./features-router";
 import { opsRouter } from "./ops-router";
+import { whatsappRouter } from "./whatsapp-router";
 import { createRouter, publicQuery } from "./middleware";
 
 export const appRouter = createRouter({
@@ -27,6 +28,7 @@ export const appRouter = createRouter({
   reports: reportsRouter,
   features: featuresRouter,
   ops: opsRouter,
+  whatsapp: whatsappRouter,
 });
 
 export type AppRouter = typeof appRouter;

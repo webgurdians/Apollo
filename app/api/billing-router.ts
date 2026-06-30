@@ -1,8 +1,8 @@
 import { z } from "zod";
 import { createRouter, publicQuery, billingQuery } from "./middleware";
 import { getDb } from "./queries/connection";
-import { bills, appointments, medicineOrders, patients, emergencyKillswitches } from "@db/schema";
-import { eq, desc, and, isNull } from "drizzle-orm";
+import { bills, appointments, medicineOrders, patients, emergencyKillswitches, billingTransactions } from "@db/schema";
+import { eq, desc, and, isNull, sql } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { logActivity } from "./lib/activity";
 
@@ -223,6 +223,104 @@ export const billingRouter = createRouter({
       const db = getDb();
       await db.update(bills).set({ deletedAt: null }).where(eq(bills.id, input.id));
       await logActivity(ctx.user, "restore", "bill", input.id);
+      return { success: true };
+    }),
+
+  listTransactions: billingQuery.query(async () => {
+    const db = getDb();
+    return await db.select({
+      id: billingTransactions.id,
+      patientId: billingTransactions.patientId,
+      patientName: patients.name,
+      patientPhone: patients.phone,
+      transactionType: billingTransactions.transactionType,
+      amount: billingTransactions.amount,
+      paymentMethod: billingTransactions.paymentMethod,
+      status: billingTransactions.status,
+      invoiceNumber: billingTransactions.invoiceNumber,
+      paymentGateway: billingTransactions.paymentGateway,
+      externalPaymentId: billingTransactions.externalPaymentId,
+      notes: billingTransactions.notes,
+      createdAt: billingTransactions.createdAt,
+    })
+    .from(billingTransactions)
+    .leftJoin(patients, eq(billingTransactions.patientId, patients.id))
+    .orderBy(desc(billingTransactions.createdAt))
+    .all();
+  }),
+
+  createTransaction: billingQuery
+    .input(
+      z.object({
+        patientId: z.number(),
+        appointmentId: z.number().optional(),
+        medicineOrderId: z.number().optional(),
+        transactionType: z.enum(["consultation", "medicine", "additional_services"]),
+        amount: z.number().min(1),
+        paymentMethod: z.enum(["cash", "upi", "card", "bank_transfer"]),
+        paymentGateway: z.string().optional(),
+        externalPaymentId: z.string().optional(),
+        notes: z.string().optional(),
+      })
+    )
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb();
+
+      // Generate invoice number sequentially (e.g. AP-YYYY-XXXXXX)
+      const currentYear = new Date().getFullYear();
+      const prefix = `AP-${currentYear}-`;
+      
+      const matches = await db.select()
+        .from(billingTransactions)
+        .where(sql`invoice_number LIKE ${prefix + "%"}`)
+        .all();
+
+      let maxSeq = 0;
+      for (const m of matches) {
+        const seqStr = m.invoiceNumber.replace(prefix, "");
+        const seq = parseInt(seqStr, 10);
+        if (!isNaN(seq) && seq > maxSeq) {
+          maxSeq = seq;
+        }
+      }
+
+      const nextSeq = maxSeq + 1;
+      const paddedSeq = String(nextSeq).padStart(6, "0");
+      const invoiceNumber = `${prefix}${paddedSeq}`;
+
+      const [newTx] = await db.insert(billingTransactions).values({
+        tenantId: "default",
+        patientId: input.patientId,
+        appointmentId: input.appointmentId || null,
+        medicineOrderId: input.medicineOrderId || null,
+        transactionType: input.transactionType,
+        amount: input.amount,
+        paymentMethod: input.paymentMethod,
+        status: "paid",
+        invoiceNumber: invoiceNumber,
+        paymentGateway: input.paymentGateway || null,
+        externalPaymentId: input.externalPaymentId || null,
+        notes: input.notes || null,
+        createdBy: ctx.user.id,
+      }).returning();
+
+      await logActivity(ctx.user, "create", "billing_transaction", newTx.id,
+        `Recorded ${input.transactionType} payment of ₹${input.amount} under invoice ${invoiceNumber}`);
+
+      return { success: true, transaction: newTx };
+    }),
+
+  refundTransaction: billingQuery
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input, ctx }) => {
+      const db = getDb();
+      await db.update(billingTransactions)
+        .set({ status: "refunded" })
+        .where(eq(billingTransactions.id, input.id));
+
+      await logActivity(ctx.user, "refund", "billing_transaction", input.id,
+        `Refunded transaction ID ${input.id}`);
+
       return { success: true };
     }),
 });

@@ -5,6 +5,7 @@ import { medicineOrders, bills, patients } from "@db/schema";
 import { eq, desc, and, isNull } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { logActivity } from "./lib/activity";
+import { queueWhatsAppMessage } from "./lib/queue-helper";
 
 const orderItemSchema = z.object({
   medicineName: z.string().min(1, "Medicine name is required"),
@@ -120,6 +121,22 @@ export const medicineOrdersRouter = createRouter({
  
       if (!order) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Order not found" });
+      }
+
+      // Automatically queue a WhatsApp message for medicine ready/delivery update
+      try {
+        const pt = await db.select().from(patients).where(eq(patients.id, order.patientId)).get();
+        if (pt) {
+          const statusText = order.deliveryStatus.replace(/_/g, " ").toUpperCase();
+          await queueWhatsAppMessage({
+            patientId: order.patientId,
+            templateKey: "medicine_ready",
+            parameters: [pt.name, String(order.id), statusText],
+            idempotencyKey: `order-${order.id}-${order.deliveryStatus}`,
+          });
+        }
+      } catch (err) {
+        console.error("Failed to queue medicine status WhatsApp message:", err);
       }
  
       await logActivity(

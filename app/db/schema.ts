@@ -430,3 +430,173 @@ export const auditLogs = sqliteTable("audit_logs", {
   metadata: text("metadata"),
   timestamp: integer("timestamp", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull(),
 });
+
+// Phase 2 Tables
+export const patientPreferences = sqliteTable("patient_preferences", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  tenantId: text("tenant_id").default("default").notNull(),
+  patientId: integer("patient_id")
+    .references(() => patients.id, { onDelete: "cascade" })
+    .notNull(),
+  whatsappOptIn: integer("whatsapp_opt_in").default(1).notNull(),
+  marketingOptIn: integer("marketing_opt_in").default(1).notNull(),
+  communicationPreference: text("communication_preference").default("whatsapp").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
+}, (table) => ({
+  patientPrefUnique: uniqueIndex("patient_preferences_patient_unique").on(table.patientId),
+}));
+
+export const whatsappSettings = sqliteTable("whatsapp_settings", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  tenantId: text("tenant_id").default("default").notNull(),
+  metaAccessTokenEncrypted: text("meta_access_token_encrypted"),
+  phoneNumberId: text("phone_number_id"),
+  businessAccountId: text("business_account_id"),
+  webhookStatus: text("webhook_status").default("inactive").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
+}, (table) => ({
+  tenantSettingsUnique: uniqueIndex("whatsapp_settings_tenant_unique").on(table.tenantId),
+}));
+
+export const whatsappTemplates = sqliteTable("whatsapp_templates", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  tenantId: text("tenant_id").default("default").notNull(),
+  name: text("name").notNull(),
+  category: text("category").notNull(), // utility, marketing, authentication
+  language: text("language").default("en").notNull(),
+  templateKey: text("template_key").notNull(),
+  status: text("status").default("pending").notNull(), // pending, approved, rejected, disabled
+  version: integer("version").default(1).notNull(),
+  isActive: integer("is_active").default(1).notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
+  deletedAt: integer("deleted_at", { mode: "timestamp" }),
+}, (table) => ({
+  templateVersionUnique: uniqueIndex("template_version_unique").on(table.tenantId, table.templateKey, table.version),
+}));
+
+export const whatsappMessages = sqliteTable("whatsapp_messages", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  tenantId: text("tenant_id").default("default").notNull(),
+  patientId: integer("patient_id")
+    .references(() => patients.id, { onDelete: "cascade" })
+    .notNull(),
+  templateId: integer("template_id").references(() => whatsappTemplates.id),
+  messageType: text("message_type").notNull(), // transactional, marketing
+  status: text("status").default("queued").notNull(), // queued, sent, delivered, read, failed
+  conversationCategory: text("conversation_category"), // utility, marketing, authentication, service
+  providerMessageId: text("provider_message_id"),
+  errorMessage: text("error_message"),
+  rawWebhookPayload: text("raw_webhook_payload"),
+  sentAt: integer("sent_at", { mode: "timestamp" }),
+  deliveredAt: integer("delivered_at", { mode: "timestamp" }),
+  readAt: integer("read_at", { mode: "timestamp" }),
+}, (table) => ({
+  wmPatientIdx: index("wm_patient_idx").on(table.patientId),
+  wmStatusIdx: index("wm_status_idx").on(table.status),
+  wmProviderIdx: index("wm_provider_idx").on(table.providerMessageId),
+  wmTenantIdx: index("wm_tenant_idx").on(table.tenantId),
+}));
+
+export const whatsappCampaigns = sqliteTable("whatsapp_campaigns", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  tenantId: text("tenant_id").default("default").notNull(),
+  name: text("name").notNull(),
+  templateId: integer("template_id").notNull(),
+  segmentType: text("segment_type").notNull(),
+  status: text("status").default("draft").notNull(), // draft, scheduled, active, paused, completed, cancelled
+  scheduledAt: integer("scheduled_at", { mode: "timestamp" }),
+  startedAt: integer("started_at", { mode: "timestamp" }),
+  completedAt: integer("completed_at", { mode: "timestamp" }),
+  totalRecipients: integer("total_recipients").default(0).notNull(),
+  deliveredCount: integer("delivered_count").default(0).notNull(),
+  readCount: integer("read_count").default(0).notNull(),
+  failedCount: integer("failed_count").default(0).notNull(),
+  estimatedCost: integer("estimated_cost").default(0).notNull(),
+  actualCost: integer("actual_cost").default(0).notNull(),
+  createdBy: integer("created_by").references(() => users.id),
+  deletedAt: integer("deleted_at", { mode: "timestamp" }),
+}, (table) => ({
+  campaignStatusIdx: index("campaign_status_idx").on(table.status),
+  campaignScheduleIdx: index("campaign_schedule_idx").on(table.scheduledAt),
+  campaignTenantIdx: index("campaign_tenant_idx").on(table.tenantId),
+}));
+
+export const whatsappCampaignRecipients = sqliteTable("whatsapp_campaign_recipients", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  tenantId: text("tenant_id").default("default").notNull(),
+  campaignId: integer("campaign_id").references(() => whatsappCampaigns.id, { onDelete: "cascade" }),
+  patientId: integer("patient_id")
+    .references(() => patients.id, { onDelete: "cascade" })
+    .notNull(),
+  status: text("status").default("queued").notNull(), // queued, sent, failed
+  sentAt: integer("sent_at", { mode: "timestamp" }),
+}, (table) => ({
+  campaignRecipientUnique: uniqueIndex("campaign_recipient_unique").on(table.campaignId, table.patientId),
+}));
+
+export const notificationJobs = sqliteTable("notification_jobs", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  tenantId: text("tenant_id").default("default").notNull(),
+  jobType: text("job_type").notNull(), // whatsapp_send
+  payload: text("payload").notNull(), // JSON string
+  idempotencyKey: text("idempotency_key"),
+  status: text("status").default("pending").notNull(), // pending, processing, completed, failed
+  attempts: integer("attempts").default(0).notNull(),
+  nextRetryAt: integer("next_retry_at", { mode: "timestamp" }),
+  lockedAt: integer("locked_at", { mode: "timestamp" }),
+  lockedBy: text("locked_by"),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
+  processedAt: integer("processed_at", { mode: "timestamp" }),
+}, (table) => ({
+  njStatusIdx: index("nj_status_idx").on(table.status),
+  njRetryIdx: index("nj_retry_idx").on(table.nextRetryAt),
+  njTenantIdx: index("nj_tenant_idx").on(table.tenantId),
+  njIdempotencyUnique: uniqueIndex("nj_idempotency_unique").on(table.idempotencyKey),
+}));
+
+export const deadNotificationJobs = sqliteTable("dead_notification_jobs", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  tenantId: text("tenant_id").default("default").notNull(),
+  jobType: text("job_type").notNull(),
+  payload: text("payload").notNull(),
+  errorMessage: text("error_message"),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
+});
+
+export const billingTransactions = sqliteTable("billing_transactions", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  tenantId: text("tenant_id").default("default").notNull(),
+  patientId: integer("patient_id")
+    .references(() => patients.id)
+    .notNull(),
+  appointmentId: integer("appointment_id"),
+  medicineOrderId: integer("medicine_order_id"),
+  transactionType: text("transaction_type").notNull(), // consultation, medicine, additional_services
+  amount: integer("amount").notNull(),
+  paymentMethod: text("payment_method").notNull(), // cash, upi, card, bank_transfer
+  status: text("status").notNull(), // paid, pending, refunded, cancelled
+  invoiceNumber: text("invoice_number").notNull(),
+  paymentGateway: text("payment_gateway"), // razorpay
+  externalPaymentId: text("external_payment_id"),
+  notes: text("notes"),
+  createdBy: integer("created_by").references(() => users.id),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
+}, (table) => ({
+  billingPatientIdx: index("billing_patient_idx").on(table.patientId),
+  billingCreatedIdx: index("billing_created_idx").on(table.createdAt),
+  billingTenantIdx: index("billing_tenant_idx").on(table.tenantId),
+  billingInvoiceUnique: uniqueIndex("billing_invoice_unique").on(table.invoiceNumber),
+}));
+
+export const whatsappAuditLogs = sqliteTable("whatsapp_audit_logs", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  tenantId: text("tenant_id").default("default").notNull(),
+  userId: integer("user_id").notNull(),
+  action: text("action").notNull(), // campaign_created, campaign_edited, campaign_deleted, campaign_sent, template_modified
+  targetId: integer("target_id").notNull(),
+  details: text("details"),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
+});

@@ -376,6 +376,160 @@ try {
         metadata TEXT,
         timestamp INTEGER NOT NULL
       );
+
+      -- Phase 2 Tables
+      CREATE TABLE IF NOT EXISTS patient_preferences (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        tenant_id TEXT NOT NULL DEFAULT 'default',
+        patient_id INTEGER NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
+        whatsapp_opt_in INTEGER NOT NULL DEFAULT 1,
+        marketing_opt_in INTEGER NOT NULL DEFAULT 1,
+        communication_preference TEXT NOT NULL DEFAULT 'whatsapp',
+        created_at INTEGER,
+        updated_at INTEGER
+      );
+      CREATE UNIQUE INDEX IF NOT EXISTS patient_preferences_patient_unique ON patient_preferences(patient_id);
+
+      CREATE TABLE IF NOT EXISTS whatsapp_settings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        tenant_id TEXT NOT NULL DEFAULT 'default',
+        meta_access_token_encrypted TEXT,
+        phone_number_id TEXT,
+        business_account_id TEXT,
+        webhook_status TEXT NOT NULL DEFAULT 'inactive',
+        created_at INTEGER,
+        updated_at INTEGER
+      );
+      CREATE UNIQUE INDEX IF NOT EXISTS whatsapp_settings_tenant_unique ON whatsapp_settings(tenant_id);
+
+      CREATE TABLE IF NOT EXISTS whatsapp_templates (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        tenant_id TEXT NOT NULL DEFAULT 'default',
+        name TEXT NOT NULL,
+        category TEXT NOT NULL,
+        language TEXT NOT NULL DEFAULT 'en',
+        template_key TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pending',
+        version INTEGER NOT NULL DEFAULT 1,
+        is_active INTEGER NOT NULL DEFAULT 1,
+        created_at INTEGER,
+        updated_at INTEGER,
+        deleted_at INTEGER
+      );
+      CREATE UNIQUE INDEX IF NOT EXISTS template_version_unique ON whatsapp_templates(tenant_id, template_key, version);
+
+      CREATE TABLE IF NOT EXISTS whatsapp_messages (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        tenant_id TEXT NOT NULL DEFAULT 'default',
+        patient_id INTEGER NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
+        template_id INTEGER REFERENCES whatsapp_templates(id),
+        message_type TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'queued',
+        conversation_category TEXT,
+        provider_message_id TEXT,
+        error_message TEXT,
+        raw_webhook_payload TEXT,
+        sent_at INTEGER,
+        delivered_at INTEGER,
+        read_at INTEGER
+      );
+      CREATE INDEX IF NOT EXISTS wm_patient_idx ON whatsapp_messages(patient_id);
+      CREATE INDEX IF NOT EXISTS wm_status_idx ON whatsapp_messages(status);
+      CREATE INDEX IF NOT EXISTS wm_provider_idx ON whatsapp_messages(provider_message_id);
+      CREATE INDEX IF NOT EXISTS wm_tenant_idx ON whatsapp_messages(tenant_id);
+
+      CREATE TABLE IF NOT EXISTS whatsapp_campaigns (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        tenant_id TEXT NOT NULL DEFAULT 'default',
+        name TEXT NOT NULL,
+        template_id INTEGER NOT NULL,
+        segment_type TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'draft',
+        scheduled_at INTEGER,
+        started_at INTEGER,
+        completed_at INTEGER,
+        total_recipients INTEGER NOT NULL DEFAULT 0,
+        delivered_count INTEGER NOT NULL DEFAULT 0,
+        read_count INTEGER NOT NULL DEFAULT 0,
+        failed_count INTEGER NOT NULL DEFAULT 0,
+        estimated_cost INTEGER NOT NULL DEFAULT 0,
+        actual_cost INTEGER NOT NULL DEFAULT 0,
+        created_by INTEGER REFERENCES users(id),
+        deleted_at INTEGER
+      );
+      CREATE INDEX IF NOT EXISTS campaign_status_idx ON whatsapp_campaigns(status);
+      CREATE INDEX IF NOT EXISTS campaign_schedule_idx ON whatsapp_campaigns(scheduled_at);
+      CREATE INDEX IF NOT EXISTS campaign_tenant_idx ON whatsapp_campaigns(tenant_id);
+
+      CREATE TABLE IF NOT EXISTS whatsapp_campaign_recipients (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        tenant_id TEXT NOT NULL DEFAULT 'default',
+        campaign_id INTEGER REFERENCES whatsapp_campaigns(id) ON DELETE CASCADE,
+        patient_id INTEGER NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
+        status TEXT NOT NULL DEFAULT 'queued',
+        sent_at INTEGER
+      );
+      CREATE UNIQUE INDEX IF NOT EXISTS campaign_recipient_unique ON whatsapp_campaign_recipients(campaign_id, patient_id);
+
+      CREATE TABLE IF NOT EXISTS notification_jobs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        tenant_id TEXT NOT NULL DEFAULT 'default',
+        job_type TEXT NOT NULL,
+        payload TEXT NOT NULL,
+        idempotency_key TEXT,
+        status TEXT NOT NULL DEFAULT 'pending',
+        attempts INTEGER NOT NULL DEFAULT 0,
+        next_retry_at INTEGER,
+        locked_at INTEGER,
+        locked_by TEXT,
+        created_at INTEGER,
+        processed_at INTEGER
+      );
+      CREATE INDEX IF NOT EXISTS nj_status_idx ON notification_jobs(status);
+      CREATE INDEX IF NOT EXISTS nj_retry_idx ON notification_jobs(next_retry_at);
+      CREATE INDEX IF NOT EXISTS nj_tenant_idx ON notification_jobs(tenant_id);
+      CREATE UNIQUE INDEX IF NOT EXISTS nj_idempotency_unique ON notification_jobs(idempotency_key);
+
+      CREATE TABLE IF NOT EXISTS dead_notification_jobs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        tenant_id TEXT NOT NULL DEFAULT 'default',
+        job_type TEXT NOT NULL,
+        payload TEXT NOT NULL,
+        error_message TEXT,
+        created_at INTEGER
+      );
+
+      CREATE TABLE IF NOT EXISTS billing_transactions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        tenant_id TEXT NOT NULL DEFAULT 'default',
+        patient_id INTEGER NOT NULL REFERENCES patients(id),
+        appointment_id INTEGER,
+        medicine_order_id INTEGER,
+        transaction_type TEXT NOT NULL,
+        amount INTEGER NOT NULL,
+        payment_method TEXT NOT NULL,
+        status TEXT NOT NULL,
+        invoice_number TEXT NOT NULL,
+        payment_gateway TEXT,
+        external_payment_id TEXT,
+        notes TEXT,
+        created_by INTEGER REFERENCES users(id),
+        created_at INTEGER
+      );
+      CREATE INDEX IF NOT EXISTS billing_patient_idx ON billing_transactions(patient_id);
+      CREATE INDEX IF NOT EXISTS billing_created_idx ON billing_transactions(created_at);
+      CREATE INDEX IF NOT EXISTS billing_tenant_idx ON billing_transactions(tenant_id);
+      CREATE UNIQUE INDEX IF NOT EXISTS billing_invoice_unique ON billing_transactions(invoice_number);
+
+      CREATE TABLE IF NOT EXISTS whatsapp_audit_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        tenant_id TEXT NOT NULL DEFAULT 'default',
+        user_id INTEGER NOT NULL,
+        action TEXT NOT NULL,
+        target_id INTEGER NOT NULL,
+        details TEXT,
+        created_at INTEGER
+      );
     `);
 
     // Alter table column additions in case it was created without them
@@ -692,6 +846,31 @@ export function runSeeding() {
 
     console.log(`Seed: ${row.count} users exist, skipping auto-seed`);
   }
+
+  // Seed default WhatsApp templates if empty
+  try {
+    const templateRow = seedDb.prepare("SELECT COUNT(*) as count FROM whatsapp_templates").get() as { count: number };
+    if (templateRow.count === 0) {
+      const templatesToSeed = [
+        { name: "Appointment Confirmation", category: "utility", template_key: "appointment_confirmation", version: 1, is_active: 1 },
+        { name: "Appointment Reminder", category: "utility", template_key: "appointment_reminder", version: 1, is_active: 1 },
+        { name: "Appointment Cancellation", category: "utility", template_key: "appointment_cancellation", version: 1, is_active: 1 },
+        { name: "Medicine Ready", category: "utility", template_key: "medicine_ready", version: 1, is_active: 1 },
+        { name: "Marketing Campaign", category: "marketing", template_key: "marketing_camp", version: 1, is_active: 1 },
+      ];
+      const stmt = seedDb.prepare(`
+        INSERT INTO whatsapp_templates (tenant_id, name, category, language, template_key, status, version, is_active, created_at, updated_at)
+        VALUES ('default', ?, ?, 'en', ?, 'approved', ?, ?, ?, ?)
+      `);
+      for (const t of templatesToSeed) {
+        stmt.run(t.name, t.category, t.template_key, t.version, t.is_active, Date.now(), Date.now());
+      }
+      console.log("Seed: created default approved WhatsApp templates");
+    }
+  } catch (err) {
+    logError("Auto-seed templates error:", err);
+  }
+
   } catch (error) {
     logError("Auto-seed error:", error);
   }
@@ -811,6 +990,80 @@ app.get("/api/prescriptions/:id/pdf", async (c) => {
 
 // Public health check endpoint for Railway
 app.get("/health", (c) => c.json({ status: "ok" }, 200));
+
+app.get("/api/webhooks/whatsapp", (c) => {
+  const verifyToken = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || "verify_token_fallback";
+  const mode = c.req.query("hub.mode");
+  const token = c.req.query("hub.verify_token");
+  const challenge = c.req.query("hub.challenge");
+
+  if (mode && token) {
+    if (mode === "subscribe" && token === verifyToken) {
+      console.log("WEBHOOK_VERIFIED");
+      return c.text(challenge || "", 200);
+    }
+    return c.text("Forbidden", 403);
+  }
+  return c.text("Bad Request", 400);
+});
+
+app.post("/api/webhooks/whatsapp", async (c) => {
+  try {
+    const body = await c.req.json();
+    console.log("WhatsApp Webhook received:", JSON.stringify(body));
+
+    const entry = body.entry?.[0];
+    const change = entry?.changes?.[0];
+    const value = change?.value;
+    const statusObj = value?.statuses?.[0];
+
+    if (statusObj) {
+      const messageId = statusObj.id;
+      const status = statusObj.status;
+      const timestamp = statusObj.timestamp ? new Date(Number(statusObj.timestamp) * 1000) : new Date();
+      const error = statusObj.errors?.[0];
+
+      const updateFields: any = {
+        status: status,
+        rawWebhookPayload: JSON.stringify(body),
+      };
+
+      if (status === "sent") updateFields.sentAt = timestamp;
+      else if (status === "delivered") updateFields.deliveredAt = timestamp;
+      else if (status === "read") updateFields.readAt = timestamp;
+
+      if (error) {
+        updateFields.errorMessage = error.message || "Meta delivery failed";
+      }
+
+      const { db } = await import("../db");
+      const { whatsappMessages, whatsappCampaigns, whatsappCampaignRecipients } = await import("../db/schema");
+      const { eq, sql } = await import("drizzle-orm");
+
+      const matched = await db.select().from(whatsappMessages).where(eq(whatsappMessages.providerMessageId, messageId)).get();
+      if (matched) {
+        await db.update(whatsappMessages).set(updateFields).where(eq(whatsappMessages.id, matched.id));
+
+        // Find campaign recipient record for counter updates
+        const rec = await db.select().from(whatsappCampaignRecipients).where(eq(whatsappCampaignRecipients.patientId, matched.patientId)).get();
+        if (rec && rec.campaignId) {
+          const setStmt: any = {};
+          if (status === "delivered") setStmt.deliveredCount = sql`delivered_count + 1`;
+          else if (status === "read") setStmt.readCount = sql`read_count + 1`;
+          else if (status === "failed") setStmt.failedCount = sql`failed_count + 1`;
+
+          if (Object.keys(setStmt).length > 0) {
+            await db.update(whatsappCampaigns).set(setStmt).where(eq(whatsappCampaigns.id, rec.campaignId));
+          }
+        }
+      }
+    }
+    return c.json({ success: true }, 200);
+  } catch (err: any) {
+    console.error("Webhook processing error:", err);
+    return c.json({ error: err.message }, 500);
+  }
+});
 
 app.post("/api/generate-receipt-pdf", async (c) => {
   try {
@@ -932,6 +1185,9 @@ app.all("/api/trpc/*", async (c) => {
   return c.body(res.body as ReadableStream | null, res.status as Parameters<typeof c.body>[1]);
 });
 app.all("/api/*", (c) => c.json({ error: "Not Found" }, 404));
+
+import { startWorkerService } from "./lib/worker";
+startWorkerService();
 
 export default app;
 

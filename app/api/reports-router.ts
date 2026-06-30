@@ -5,8 +5,8 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { createRouter, frontDeskQuery, clinicStaffQuery, authedQuery } from "./middleware";
 import { env } from "./lib/env";
 import { getDb } from "./queries/connection";
-import { patientReports, patients, doctors, users } from "../db/schema";
-import { eq, and, desc, isNull } from "drizzle-orm";
+import { patientReports, patients, doctors, users, appointments, medicineOrders, billingTransactions } from "../db/schema";
+import { eq, and, desc, isNull, sql } from "drizzle-orm";
 import { logActivity } from "./lib/activity";
 
 const s3Client = new S3Client({
@@ -170,5 +170,100 @@ export const reportsRouter = createRouter({
         isNull(patientReports.deletedAt),
       ))
       .orderBy(desc(patientReports.createdAt));
+  }),
+
+  getFinancialSummary: clinicStaffQuery.query(async () => {
+    const db = getDb();
+    const now = new Date();
+    
+    // Start dates
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    // Helper to calculate totals
+    const getStats = async (startDate: Date) => {
+      // 1. Appointments Count
+      const apts = await db.select()
+        .from(appointments)
+        .where(
+          and(
+            isNull(appointments.deletedAt),
+            sql`created_at >= ${startDate.getTime()}`
+          )
+        )
+        .all();
+
+      // 2. Medicine Orders Count
+      const orders = await db.select()
+        .from(medicineOrders)
+        .where(
+          and(
+            isNull(medicineOrders.deletedAt),
+            sql`createdAt >= ${startDate.getTime()}`
+          )
+        )
+        .all();
+
+      // 3. Transactions Count and Revenue sum
+      const txs = await db.select()
+        .from(billingTransactions)
+        .where(
+          and(
+            eq(billingTransactions.status, "paid"),
+            sql`created_at >= ${startDate.getTime()}`
+          )
+        )
+        .all();
+
+      const walkins = apts.filter(a => a.appointmentNumber === null).length;
+      const apptCount = apts.length - walkins;
+      const totalRevenue = txs.reduce((sum, t) => sum + t.amount, 0);
+
+      return {
+        revenue: totalRevenue,
+        appointments: apptCount,
+        walkins,
+        medicineOrders: orders.length,
+        patientCount: apts.length + orders.length,
+      };
+    };
+
+    const todayStats = await getStats(startOfToday);
+    const weekStats = await getStats(startOfWeek);
+    const monthStats = await getStats(startOfMonth);
+
+    // Daily revenue trends (last 7 days)
+    const dailyTrends: { date: string; revenue: number; count: number }[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(now.getDate() - i);
+      const startD = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      const endD = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
+
+      const dayTxs = await db.select()
+        .from(billingTransactions)
+        .where(
+          and(
+            eq(billingTransactions.status, "paid"),
+            sql`created_at >= ${startD.getTime()}`,
+            sql`created_at < ${endD.getTime()}`
+          )
+        )
+        .all();
+
+      dailyTrends.push({
+        date: d.toLocaleDateString(undefined, { weekday: "short", day: "numeric" }),
+        revenue: dayTxs.reduce((sum, t) => sum + t.amount, 0),
+        count: dayTxs.length,
+      });
+    }
+
+    return {
+      today: todayStats,
+      weekly: weekStats,
+      monthly: monthStats,
+      dailyTrends,
+    };
   }),
 });
