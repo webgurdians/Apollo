@@ -63,14 +63,7 @@ export default function Admin() {
     { value: "report_dispatch", label: "Patient Reports", icon: <FileText className="w-4 h-4" />, content: <ReportDispatchSection /> },
   ];
 
-  const enabledTabs = allTabs
-    .filter((t) => flags?.[t.value] !== false)
-    .filter((t) => {
-      if (t.value === "revenue" || t.value === "whatsapp") {
-        return user?.role === "founder";
-      }
-      return true;
-    });
+  const enabledTabs = allTabs.filter((t) => flags?.[t.value] !== false);
 
   const firstEnabled = enabledTabs[0]?.value || "appointments";
 
@@ -82,9 +75,26 @@ export default function Admin() {
             <h1 className="text-xl font-bold bg-gradient-to-r from-apollo-blue to-apollo-orange bg-clip-text text-transparent">
               Apollo Clinic
             </h1>
-            <span className="px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
-              Admin
-            </span>
+            {user?.role === "developer_preview" && (
+              <span className="px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-300 animate-pulse">
+                Developer Preview
+              </span>
+            )}
+            {user?.role === "platform_owner" && (
+              <span className="px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
+                Platform Owner
+              </span>
+            )}
+            {user?.role === "founder" && (
+              <span className="px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
+                Founder
+              </span>
+            )}
+            {user?.role !== "developer_preview" && user?.role !== "platform_owner" && user?.role !== "founder" && (
+              <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                {user?.role ? user.role.toUpperCase() : "STAFF"}
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-4">
             {flags?.global_search !== false && <GlobalSearch />}

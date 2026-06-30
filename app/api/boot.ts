@@ -257,6 +257,7 @@ try {
         category TEXT NOT NULL,
         description TEXT,
         enabled INTEGER DEFAULT 0 NOT NULL,
+        status TEXT DEFAULT 'disabled' NOT NULL,
         rolloutPercentage INTEGER DEFAULT 100 NOT NULL,
         updatedAt INTEGER NOT NULL
       );
@@ -561,6 +562,23 @@ try {
   }
 }
 
+// Safely run alter table migrations to add status column if it does not exist
+try {
+  const patchDb = getDb().$client;
+  patchDb.prepare(`ALTER TABLE feature_flags ADD COLUMN status TEXT DEFAULT 'disabled' NOT NULL`).run();
+  console.log("Successfully ran manual migration: Added status column to feature_flags table");
+} catch (e) {
+  // Ignore if column already exists
+}
+
+try {
+  const patchDb = getDb().$client;
+  // Initialize existing core features to 'enabled'
+  patchDb.prepare(`UPDATE feature_flags SET status = 'enabled' WHERE key IN ('appointments', 'billing', 'doctors') AND status = 'disabled'`).run();
+} catch (e) {
+  // Ignore
+}
+
 // Ensure existing admin user has 'admin' role (since they are the clinic owner)
 // and create a separate 'developer' user with the 'founder' role for the developer.
 try {
@@ -569,7 +587,10 @@ try {
   // 1. Downgrade admin to 'admin'
   fixDb.prepare(`UPDATE users SET role = 'admin' WHERE username = 'admin'`).run();
   
-  // 2. Ensure developer user exists with 'founder' role
+  // 2. Migrate existing developer from 'founder' to 'platform_owner'
+  fixDb.prepare(`UPDATE users SET role = 'platform_owner' WHERE username = 'developer'`).run();
+
+  // 3. Ensure developer user exists with 'platform_owner' role
   const devExists = fixDb.prepare("SELECT COUNT(*) as count FROM users WHERE username = 'developer'").get() as { count: number };
   if (devExists.count === 0) {
     const now = Date.now();
@@ -581,7 +602,7 @@ try {
     fixDb.prepare(`
       INSERT INTO users (username, passwordHash, name, role, createdAt, updatedAt, lastSignInAt)
       VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run("developer", passwordHash, "Developer", "founder", now, now, now);
+    `).run("developer", passwordHash, "Developer", "platform_owner", now, now, now);
   }
 } catch (e) {
   console.error("Failed to patch developer and admin accounts:", e);
@@ -627,11 +648,12 @@ try {
   ];
   for (const flag of defaultFlags) {
     const flagId = `flag_${flag.key}`;
+    const status = flag.enabled ? "enabled" : "disabled";
     occDb.prepare(`
-      INSERT INTO feature_flags (id, tenantId, key, name, category, description, enabled, rolloutPercentage, updatedAt)
-      VALUES (?, 'apollo-aranghata', ?, ?, ?, '', ?, 100, ?)
+      INSERT INTO feature_flags (id, tenantId, key, name, category, description, enabled, status, rolloutPercentage, updatedAt)
+      VALUES (?, 'apollo-aranghata', ?, ?, ?, '', ?, ?, 100, ?)
       ON CONFLICT(id) DO NOTHING
-    `).run(flagId, flag.key, flag.name, flag.category, flag.enabled, now);
+    `).run(flagId, flag.key, flag.name, flag.category, flag.enabled, status, now);
   }
 
   // 4. Seed default Emergency Killswitches
@@ -724,8 +746,8 @@ export function runSeeding() {
     seedDb.prepare(`
       INSERT INTO users (username, passwordHash, name, role, createdAt, updatedAt, lastSignInAt)
       VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run("developer", hashPassword(devPass), "Developer", "founder", now, now, now);
-    console.log("Seed: created developer user (founder role)");
+    `).run("developer", hashPassword(devPass), "Developer", "platform_owner", now, now, now);
+    console.log("Seed: created developer user (platform_owner role)");
 
     const pass = "apollo123";
     const doctors = [

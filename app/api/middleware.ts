@@ -24,8 +24,8 @@ const requireAuth = t.middleware(async (opts) => {
     });
   }
 
-  // Founder role bypasses maintenance mode. All other roles are blocked.
-  if (ctx.user.role !== "founder") {
+  // Platform owner and founder (temporary) roles bypass maintenance mode. All other roles are blocked.
+  if (ctx.user.role !== "platform_owner" && ctx.user.role !== "founder") {
     try {
       const db = getDb();
       const killswitch = await db
@@ -67,13 +67,14 @@ function requireRole(roles: string[]) {
 }
 
 export const authedQuery = t.procedure.use(requireAuth);
-export const adminQuery = authedQuery.use(requireRole(["founder", "admin"]));
-export const staffQuery = authedQuery.use(requireRole(["founder", "admin", "staff", "front_desk"]));
-export const clinicStaffQuery = authedQuery.use(requireRole(["founder", "admin", "staff", "front_desk", "doctor"]));
-export const doctorQuery = authedQuery.use(requireRole(["founder", "admin", "doctor"]));
-export const frontDeskQuery = authedQuery.use(requireRole(["founder", "admin", "staff", "front_desk"]));
-export const pharmacyQuery = authedQuery.use(requireRole(["founder", "admin", "pharmacy"]));
-export const diagnosticsQuery = authedQuery.use(requireRole(["founder", "admin", "diagnostics"]));
-export const billingQuery = authedQuery.use(requireRole(["founder", "admin", "front_desk"]));
-export const founderQuery = authedQuery.use(requireRole(["founder"]));
-export const founderMutation = founderQuery;
+export const adminQuery = authedQuery.use(requireRole(["founder", "developer_preview", "admin"]));
+export const staffQuery = authedQuery.use(requireRole(["founder", "developer_preview", "admin", "staff", "front_desk"]));
+export const clinicStaffQuery = authedQuery.use(requireRole(["founder", "developer_preview", "admin", "staff", "front_desk", "doctor"]));
+export const doctorQuery = authedQuery.use(requireRole(["founder", "developer_preview", "admin", "doctor"]));
+export const frontDeskQuery = authedQuery.use(requireRole(["founder", "developer_preview", "admin", "staff", "front_desk"]));
+export const pharmacyQuery = authedQuery.use(requireRole(["founder", "developer_preview", "admin", "pharmacy"]));
+export const diagnosticsQuery = authedQuery.use(requireRole(["founder", "developer_preview", "admin", "diagnostics"]));
+export const billingQuery = authedQuery.use(requireRole(["founder", "developer_preview", "admin", "front_desk"]));
+export const platformOwnerQuery = authedQuery.use(requireRole(["platform_owner", "founder"]));
+export const founderQuery = platformOwnerQuery;
+export const founderMutation = platformOwnerQuery;

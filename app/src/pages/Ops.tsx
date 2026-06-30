@@ -40,24 +40,24 @@ export default function Ops() {
     loginMutation.mutate({ username: "developer", password });
   };
 
-  // OCC Data Queries — only enabled when founder is authenticated
-  const isFounder = !!user && user.role === "founder";
+  // OCC Data Queries — only enabled when platform owner is authenticated
+  const isPlatformOwner = !!user && (user.role === "platform_owner" || user.role === "founder");
 
   const { data: dashboard, isLoading: dashLoading, error: dashError } = trpc.ops.getOpsDashboard.useQuery(undefined, {
-    enabled: isFounder,
+    enabled: isPlatformOwner,
     refetchInterval: 30000,
   });
 
   const { data: featureFlags, isLoading: flagsLoading, error: flagsError } = trpc.ops.getFeatureFlags.useQuery(undefined, {
-    enabled: isFounder,
+    enabled: isPlatformOwner,
   });
 
   const { data: killswitches, isLoading: switchesLoading, error: switchesError } = trpc.ops.getKillswitches.useQuery(undefined, {
-    enabled: isFounder,
+    enabled: isPlatformOwner,
   });
 
   const { data: auditLogs, isLoading: auditLoading, error: auditError } = trpc.ops.getAuditLogs.useQuery(undefined, {
-    enabled: isFounder,
+    enabled: isPlatformOwner,
   });
 
   const toggleFlagMutation = trpc.ops.toggleFeatureFlag.useMutation({
@@ -85,8 +85,8 @@ export default function Ops() {
     );
   }
 
-  // Developer Gate — show login if not founder
-  if (!isFounder) {
+  // Developer Gate — show login if not platform owner
+  if (!isPlatformOwner) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-950 px-4">
         <Card className="w-full max-w-sm bg-slate-900 border-slate-800 shadow-2xl">
@@ -97,7 +97,7 @@ export default function Ops() {
             <div>
               <CardTitle className="text-xl text-white font-mono tracking-tight">Operations Gate</CardTitle>
               <p className="text-xs text-slate-400 mt-1">
-                Restricted access — founder credentials required
+                Restricted access — platform owner credentials required
               </p>
             </div>
           </CardHeader>
@@ -163,7 +163,7 @@ export default function Ops() {
         return (
           <FeatureFlagsPanel
             flags={featureFlags}
-            onToggle={(id, enabled) => toggleFlagMutation.mutate({ id, enabled })}
+            onToggle={(id, status) => toggleFlagMutation.mutate({ id, status })}
             loading={flagsLoading}
             error={flagsError}
           />

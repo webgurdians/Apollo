@@ -18,9 +18,9 @@ import { Loader2 } from 'lucide-react'
 import { trpc } from './providers/trpc'
 
 const ALLOWED_ROLES: Record<string, string[]> = {
-  "/admin": ["founder", "admin", "staff", "user"],
+  "/admin": ["platform_owner", "developer_preview", "founder", "admin", "staff", "user"],
 
-  "/front-desk": ["front_desk", "founder", "admin"],
+  "/front-desk": ["front_desk", "platform_owner", "developer_preview", "founder", "admin"],
   "/doctor": ["doctor", "admin"],
   "/pharmacy": ["pharmacy"],
   "/diagnostics": ["diagnostics"],
@@ -38,8 +38,8 @@ function ProtectedRoute({ path, children }: { path: string; children: React.Reac
     )
   }
 
-  // Redirect all non-founder users to maintenance page if maintenance mode is active
-  if (isMaintenance && user?.role !== "founder") {
+  // Redirect all non-platform_owner/founder users to maintenance page if maintenance mode is active
+  if (isMaintenance && user?.role !== "platform_owner" && user?.role !== "founder") {
     return <Navigate to="/maintenance" replace />
   }
 

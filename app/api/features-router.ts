@@ -19,17 +19,60 @@ export const featuresRouter = createRouter({
       return false;
     }
   }),
-  list: authedQuery.query(async () => {
+  list: authedQuery.query(async ({ ctx }) => {
     const db = getDb();
+    const userRole = ctx.user?.role || "user";
+
+    // 1. Fetch active killswitches
+    let isWhatsappKilled = false;
+    let isPaymentsKilled = false;
+    try {
+      const ksRows = await db.select().from(emergencyKillswitches);
+      isWhatsappKilled = ksRows.find((k) => k.key === "disable_whatsapp")?.active === true;
+      isPaymentsKilled = ksRows.find((k) => k.key === "disable_payments")?.active === true;
+    } catch {
+      // safe fallback
+    }
+
+    // 2. Fetch feature flags
     const rows = await db
-      .select({ key: featureFlags.key, enabled: featureFlags.enabled })
+      .select({ key: featureFlags.key, enabled: featureFlags.enabled, status: featureFlags.status })
       .from(featureFlags)
       .where(eq(featureFlags.tenantId, "apollo-aranghata"));
 
     const flags: Record<string, boolean> = {};
-    for (const row of rows) {
-      flags[row.key] = row.enabled;
+    
+    // Default all expected keys to false for fail-closed safety
+    const expectedKeys = [
+      "appointments", "billing", "doctors", "whatsapp", "revenue", 
+      "diagnostics", "online_consultation", "ai_receptionist", "reviews"
+    ];
+    for (const key of expectedKeys) {
+      flags[key] = false;
     }
+
+    for (const row of rows) {
+      const status = row.status || "disabled";
+      let isVisible = false;
+
+      if (status === "preview") {
+        isVisible = userRole === "developer_preview" || userRole === "platform_owner" || userRole === "founder";
+      } else if (status === "enabled") {
+        isVisible = userRole === "admin" || userRole === "developer_preview" || userRole === "platform_owner" || userRole === "founder";
+      }
+
+      flags[row.key] = isVisible;
+    }
+
+    // 3. Integrate Global Killswitches
+    if (isWhatsappKilled) {
+      flags["whatsapp"] = false;
+    }
+    if (isPaymentsKilled) {
+      flags["billing"] = false;
+      flags["revenue"] = false;
+    }
+
     return flags;
   }),
 

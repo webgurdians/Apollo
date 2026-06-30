@@ -13,7 +13,7 @@ export const users = sqliteTable("users", {
   name: text("name"),
   email: text("email"),
   avatar: text("avatar"),
-  role: text("role", { enum: ["user", "staff", "admin", "front_desk", "doctor", "pharmacy", "diagnostics", "founder"] }).default("user").notNull(),
+  role: text("role", { enum: ["user", "staff", "admin", "front_desk", "doctor", "pharmacy", "diagnostics", "founder", "platform_owner", "developer_preview"] }).default("user").notNull(),
   createdAt: integer("createdAt", { mode: "timestamp" })
     .$defaultFn(() => new Date())
     .notNull(),
@@ -312,6 +312,7 @@ export const featureFlags = sqliteTable("feature_flags", {
   category: text("category").notNull(),
   description: text("description"),
   enabled: integer("enabled", { mode: "boolean" }).default(false).notNull(),
+  status: text("status", { enum: ["disabled", "preview", "enabled"] }).default("disabled").notNull(),
   rolloutPercentage: integer("rolloutPercentage").default(100).notNull(),
   updatedAt: integer("updatedAt", { mode: "timestamp" }).$defaultFn(() => new Date()).notNull().$onUpdateFn(() => new Date()),
 });

@@ -68,7 +68,7 @@ export const opsRouter = createRouter({
   toggleFeatureFlag: founderMutation
     .input(z.object({
       id: z.string(),
-      enabled: z.boolean()
+      status: z.enum(["disabled", "preview", "enabled"])
     }))
     .mutation(async ({ input, ctx }) => {
       const db = getDb();
@@ -79,19 +79,26 @@ export const opsRouter = createRouter({
         .from(featureFlags)
         .where(eq(featureFlags.id, input.id))
         .limit(1);
-
+ 
       if (existing.length === 0) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Feature flag not found" });
       }
-
+ 
       const flag = existing[0];
-
+      const eventName = input.status === "enabled" ? "feature_enabled" : 
+                        input.status === "disabled" ? "feature_disabled" : 
+                        "feature_preview";
+ 
       // Update in DB
       await db
         .update(featureFlags)
-        .set({ enabled: input.enabled, updatedAt: new Date() })
+        .set({ 
+          enabled: input.status === "enabled", 
+          status: input.status, 
+          updatedAt: new Date() 
+        })
         .where(eq(featureFlags.id, input.id));
-
+ 
       // Audit Log write
       const ip1 = ctx.req.headers.get("x-forwarded-for") || ctx.req.headers.get("x-real-ip") || "unknown";
       const ua1 = ctx.req.headers.get("user-agent") || "unknown";
@@ -101,16 +108,19 @@ export const opsRouter = createRouter({
         ua1,
         flag.tenantId || "system",
         ctx.user.username,
-        "feature_flag_toggled",
+        eventName,
         "feature_flags",
         {
-          flagId: flag.id,
-          key: flag.key,
-          previous: flag.enabled,
-          next: input.enabled
+          actor_id: ctx.user.id,
+          actor_role: ctx.user.role,
+          tenant_id: flag.tenantId || "system",
+          feature_key: flag.key,
+          old_state: flag.status || "disabled",
+          new_state: input.status,
+          timestamp: new Date().toISOString()
         }
       );
-
+ 
       return { success: true };
     }),
 

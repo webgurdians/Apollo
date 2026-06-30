@@ -10,10 +10,10 @@ import { signSessionToken } from "./auth/session";
 import { TRPCError } from "@trpc/server";
 import { getDb } from "./queries/connection";
 import { users } from "@db/schema";
-import { eq, ne } from "drizzle-orm";
+import { eq, ne, and } from "drizzle-orm";
 import { logActivity } from "./lib/activity";
 
-const roleEnum = z.enum(["user", "staff", "admin", "front_desk", "doctor", "pharmacy", "diagnostics", "founder"]);
+const roleEnum = z.enum(["user", "staff", "admin", "front_desk", "doctor", "pharmacy", "diagnostics", "founder", "platform_owner", "developer_preview"]);
 
 export const authRouter = createRouter({
   me: authedQuery.query((opts) => opts.ctx.user),
@@ -124,8 +124,8 @@ export const authRouter = createRouter({
       })
       .from(users);
 
-    if (ctx.user.role !== "founder") {
-      return await query.where(ne(users.role, "founder")).orderBy(users.createdAt);
+    if (ctx.user.role !== "platform_owner" && ctx.user.role !== "founder") {
+      return await query.where(and(ne(users.role, "platform_owner"), ne(users.role, "founder"))).orderBy(users.createdAt);
     }
     return await query.orderBy(users.createdAt);
   }),
