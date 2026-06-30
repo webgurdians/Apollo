@@ -63,7 +63,14 @@ export default function Admin() {
     { value: "report_dispatch", label: "Patient Reports", icon: <FileText className="w-4 h-4" />, content: <ReportDispatchSection /> },
   ];
 
-  const enabledTabs = allTabs.filter((t) => flags?.[t.value] !== false);
+  const enabledTabs = allTabs
+    .filter((t) => flags?.[t.value] !== false)
+    .filter((t) => {
+      if (t.value === "revenue" || t.value === "whatsapp") {
+        return user?.role === "founder";
+      }
+      return true;
+    });
 
   const firstEnabled = enabledTabs[0]?.value || "appointments";
 

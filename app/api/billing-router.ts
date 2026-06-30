@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createRouter, publicQuery, billingQuery } from "./middleware";
+import { createRouter, publicQuery, billingQuery, founderQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import { bills, appointments, medicineOrders, patients, emergencyKillswitches, billingTransactions } from "@db/schema";
 import { eq, desc, and, isNull, sql } from "drizzle-orm";
@@ -226,7 +226,7 @@ export const billingRouter = createRouter({
       return { success: true };
     }),
 
-  listTransactions: billingQuery.query(async () => {
+  listTransactions: founderQuery.query(async () => {
     const db = getDb();
     return await db.select({
       id: billingTransactions.id,
@@ -249,7 +249,7 @@ export const billingRouter = createRouter({
     .all();
   }),
 
-  createTransaction: billingQuery
+  createTransaction: founderQuery
     .input(
       z.object({
         patientId: z.number(),
@@ -310,7 +310,7 @@ export const billingRouter = createRouter({
       return { success: true, transaction: newTx };
     }),
 
-  refundTransaction: billingQuery
+  refundTransaction: founderQuery
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => {
       const db = getDb();

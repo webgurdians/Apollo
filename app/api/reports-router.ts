@@ -2,7 +2,7 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { createRouter, frontDeskQuery, clinicStaffQuery, authedQuery } from "./middleware";
+import { createRouter, frontDeskQuery, clinicStaffQuery, authedQuery, founderQuery } from "./middleware";
 import { env } from "./lib/env";
 import { getDb } from "./queries/connection";
 import { patientReports, patients, doctors, users, appointments, medicineOrders, billingTransactions } from "../db/schema";
@@ -172,7 +172,7 @@ export const reportsRouter = createRouter({
       .orderBy(desc(patientReports.createdAt));
   }),
 
-  getFinancialSummary: clinicStaffQuery.query(async () => {
+  getFinancialSummary: founderQuery.query(async () => {
     const db = getDb();
     const now = new Date();
     

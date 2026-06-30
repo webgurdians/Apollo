@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createRouter, staffQuery, adminQuery } from "./middleware";
+import { createRouter, founderQuery } from "./middleware";
 import { getDb } from "./queries/connection";
 import {
   whatsappSettings,
@@ -33,7 +33,7 @@ async function validateMetaCredentials(token: string, phoneId: string): Promise<
 }
 
 export const whatsappRouter = createRouter({
-  getSettings: adminQuery.query(async () => {
+  getSettings: founderQuery.query(async () => {
     const db = getDb();
     const settings = await db.select().from(whatsappSettings).where(eq(whatsappSettings.tenantId, "default")).get();
     if (!settings) {
@@ -52,7 +52,7 @@ export const whatsappRouter = createRouter({
     };
   }),
 
-  saveSettings: adminQuery
+  saveSettings: founderQuery
     .input(
       z.object({
         metaAccessToken: z.string().min(1),
@@ -98,7 +98,7 @@ export const whatsappRouter = createRouter({
       return { success: true };
     }),
 
-  listTemplates: staffQuery.query(async () => {
+  listTemplates: founderQuery.query(async () => {
     const db = getDb();
     return await db.select()
       .from(whatsappTemplates)
@@ -107,7 +107,7 @@ export const whatsappRouter = createRouter({
       .all();
   }),
 
-  createTemplate: adminQuery
+  createTemplate: founderQuery
     .input(
       z.object({
         name: z.string().min(1),
@@ -165,7 +165,7 @@ export const whatsappRouter = createRouter({
       return { success: true };
     }),
 
-  deleteTemplate: adminQuery
+  deleteTemplate: founderQuery
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => {
       const db = getDb();
@@ -184,7 +184,7 @@ export const whatsappRouter = createRouter({
       return { success: true };
     }),
 
-  toggleTemplateActive: adminQuery
+  toggleTemplateActive: founderQuery
     .input(z.object({ id: z.number(), isActive: z.boolean() }))
     .mutation(async ({ input, ctx }) => {
       const db = getDb();
@@ -211,7 +211,7 @@ export const whatsappRouter = createRouter({
       return { success: true };
     }),
 
-  listMessages: staffQuery
+  listMessages: founderQuery
     .input(
       z.object({
         patientId: z.number().optional(),
@@ -245,7 +245,7 @@ export const whatsappRouter = createRouter({
         .all();
     }),
 
-  listCampaigns: staffQuery.query(async () => {
+  listCampaigns: founderQuery.query(async () => {
     const db = getDb();
     return await db.select()
       .from(whatsappCampaigns)
@@ -254,7 +254,7 @@ export const whatsappRouter = createRouter({
       .all();
   }),
 
-  createCampaign: adminQuery
+  createCampaign: founderQuery
     .input(
       z.object({
         name: z.string().min(1),
@@ -398,7 +398,7 @@ export const whatsappRouter = createRouter({
       return { success: true };
     }),
 
-  updateCampaignStatus: adminQuery
+  updateCampaignStatus: founderQuery
     .input(
       z.object({
         id: z.number(),
@@ -422,7 +422,7 @@ export const whatsappRouter = createRouter({
       return { success: true };
     }),
 
-  getPatientPreferences: staffQuery
+  getPatientPreferences: founderQuery
     .input(z.object({ patientId: z.number() }))
     .query(async ({ input }) => {
       const db = getDb();
@@ -441,7 +441,7 @@ export const whatsappRouter = createRouter({
       };
     }),
 
-  savePatientPreferences: staffQuery
+  savePatientPreferences: founderQuery
     .input(
       z.object({
         patientId: z.number(),
