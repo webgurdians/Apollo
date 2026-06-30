@@ -584,41 +584,45 @@ try {
 try {
   const fixDb = getDb().$client;
   
-  // 1. Downgrade admin to 'admin'
-  fixDb.prepare(`UPDATE users SET role = 'admin' WHERE username = 'admin'`).run();
-  
-  // 2. Migrate existing developer from 'founder' to 'platform_owner'
-  fixDb.prepare(`UPDATE users SET role = 'platform_owner' WHERE username = 'developer'`).run();
-
-  // 3. Ensure developer user exists with 'platform_owner' role
-  const devExists = fixDb.prepare("SELECT COUNT(*) as count FROM users WHERE username = 'developer'").get() as { count: number };
-  if (devExists.count === 0) {
-    const now = Date.now();
-    const devPass = process.env.SEED_DEV_PASSWORD || "dev123";
-    const salt = crypto.randomBytes(16).toString("hex");
-    const hash = crypto.scryptSync(devPass, salt, 64).toString("hex");
-    const passwordHash = `${salt}:${hash}`;
+  // Verify if users table exists and has records
+  const userCountRow = fixDb.prepare("SELECT COUNT(*) as count FROM users").get() as { count: number };
+  if (userCountRow.count > 0) {
+    // 1. Downgrade admin to 'admin'
+    fixDb.prepare(`UPDATE users SET role = 'admin' WHERE username = 'admin'`).run();
     
-    fixDb.prepare(`
-      INSERT INTO users (username, passwordHash, name, role, createdAt, updatedAt, lastSignInAt)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run("developer", passwordHash, "Developer", "platform_owner", now, now, now);
-  }
+    // 2. Migrate existing developer from 'founder' to 'platform_owner'
+    fixDb.prepare(`UPDATE users SET role = 'platform_owner' WHERE username = 'developer'`).run();
 
-  // 4. Ensure developer preview user exists with 'developer_preview' role
-  const previewExists = fixDb.prepare("SELECT COUNT(*) as count FROM users WHERE username = 'preview'").get() as { count: number };
-  if (previewExists.count === 0) {
-    const now = Date.now();
-    const previewPass = "preview123";
-    const salt = crypto.randomBytes(16).toString("hex");
-    const hash = crypto.scryptSync(previewPass, salt, 64).toString("hex");
-    const passwordHash = `${salt}:${hash}`;
-    
-    fixDb.prepare(`
-      INSERT INTO users (username, passwordHash, name, role, createdAt, updatedAt, lastSignInAt)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run("preview", passwordHash, "Developer Preview", "developer_preview", now, now, now);
-    console.log("Seed: created developer preview user (developer_preview role)");
+    // 3. Ensure developer user exists with 'platform_owner' role
+    const devExists = fixDb.prepare("SELECT COUNT(*) as count FROM users WHERE username = 'developer'").get() as { count: number };
+    if (devExists.count === 0) {
+      const now = Date.now();
+      const devPass = process.env.SEED_DEV_PASSWORD || "dev123";
+      const salt = crypto.randomBytes(16).toString("hex");
+      const hash = crypto.scryptSync(devPass, salt, 64).toString("hex");
+      const passwordHash = `${salt}:${hash}`;
+      
+      fixDb.prepare(`
+        INSERT INTO users (username, passwordHash, name, role, createdAt, updatedAt, lastSignInAt)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run("developer", passwordHash, "Developer", "platform_owner", now, now, now);
+    }
+
+    // 4. Ensure developer preview user exists with 'developer_preview' role
+    const previewExists = fixDb.prepare("SELECT COUNT(*) as count FROM users WHERE username = 'preview'").get() as { count: number };
+    if (previewExists.count === 0) {
+      const now = Date.now();
+      const previewPass = "preview123";
+      const salt = crypto.randomBytes(16).toString("hex");
+      const hash = crypto.scryptSync(previewPass, salt, 64).toString("hex");
+      const passwordHash = `${salt}:${hash}`;
+      
+      fixDb.prepare(`
+        INSERT INTO users (username, passwordHash, name, role, createdAt, updatedAt, lastSignInAt)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run("preview", passwordHash, "Developer Preview", "developer_preview", now, now, now);
+      console.log("Seed: created developer preview user (developer_preview role)");
+    }
   }
 } catch (e) {
   console.error("Failed to patch developer, admin, and preview accounts:", e);
@@ -769,6 +773,12 @@ export function runSeeding() {
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `).run("developer", hashPassword(devPass), "Developer", "platform_owner", now, now, now);
     console.log("Seed: created developer user (platform_owner role)");
+
+    seedDb.prepare(`
+      INSERT INTO users (username, passwordHash, name, role, createdAt, updatedAt, lastSignInAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run("preview", hashPassword("preview123"), "Developer Preview", "developer_preview", now, now, now);
+    console.log("Seed: created developer preview user (developer_preview role)");
 
     const pass = "apollo123";
     const doctors = [
