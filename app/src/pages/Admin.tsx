@@ -2,7 +2,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { trpc } from "@/providers/trpc";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { LogOut, Shield, FileText, Calendar, Users, CreditCard, Mail, Stethoscope, UserPlus, AlertTriangle, ShoppingBag } from "lucide-react";
+import { LogOut, Shield, FileText, Calendar, Users, CreditCard, Mail, Stethoscope, UserPlus, AlertTriangle, ShoppingBag, MessageSquare, TrendingUp } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -22,6 +22,8 @@ import { EndOfDayReport } from "@/components/EndOfDayReport";
 import { useSessionTimeout } from "@/hooks/useSessionTimeout";
 import MedicineOrdersSection from "@/components/dashboard/MedicineOrdersSection";
 import ReportDispatchSection from "@/components/dashboard/ReportDispatchSection";
+import WhatsAppDashboard from "@/components/dashboard/WhatsAppDashboard";
+import RevenueDashboard from "@/components/dashboard/RevenueDashboard";
 
 interface Tab {
   value: string
@@ -50,6 +52,8 @@ export default function Admin() {
     { value: "appointments", label: "Appointments", icon: <Calendar className="w-4 h-4" />, content: <AppointmentsSection /> },
     { value: "patients", label: "Patients / History", icon: <Users className="w-4 h-4" />, content: <PatientQueueSection onViewPrescription={handleViewPrescription} /> },
     { value: "billing", label: "Billing", icon: <CreditCard className="w-4 h-4" />, content: <BillingSection /> },
+    { value: "revenue", label: "Revenue Ledger", icon: <TrendingUp className="w-4 h-4" />, content: <RevenueDashboard /> },
+    { value: "whatsapp", label: "WhatsApp Automation", icon: <MessageSquare className="w-4 h-4" />, content: <WhatsAppDashboard /> },
     { value: "medicine_orders", label: "Medicine Orders", icon: <ShoppingBag className="w-4 h-4" />, content: <MedicineOrdersSection /> },
     { value: "contacts", label: "Enquiries", icon: <Mail className="w-4 h-4" />, content: <ContactsSection /> },
     { value: "staff", label: "Staff", icon: <Users className="w-4 h-4" />, content: <StaffSection /> },

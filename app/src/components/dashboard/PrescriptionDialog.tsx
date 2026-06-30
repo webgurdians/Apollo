@@ -1,5 +1,7 @@
+import { useState, useEffect } from "react";
 import { trpc } from "@/providers/trpc";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -8,7 +10,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Calendar, FileText, Receipt, Activity } from "lucide-react";
+import { Loader2, Calendar, FileText, Receipt, Activity, Settings } from "lucide-react";
 import { format } from "date-fns";
 
 interface PatientHistory {
@@ -86,6 +88,27 @@ export default function PrescriptionDialog({
     { enabled: !!patientId && open }
   );
 
+  const { data: pref, refetch: refetchPref } = trpc.whatsapp.getPatientPreferences.useQuery(
+    { patientId: patientId! },
+    { enabled: !!patientId && open }
+  );
+
+  const savePref = trpc.whatsapp.savePatientPreferences.useMutation({
+    onSuccess: () => refetchPref()
+  });
+
+  const [whatsappOptIn, setWhatsappOptIn] = useState(true);
+  const [marketingOptIn, setMarketingOptIn] = useState(true);
+  const [commPreference, setCommPreference] = useState("whatsapp");
+
+  useEffect(() => {
+    if (pref) {
+      setWhatsappOptIn(pref.whatsappOptIn);
+      setMarketingOptIn(pref.marketingOptIn);
+      setCommPreference(pref.communicationPreference);
+    }
+  }, [pref]);
+
 
   if (!patient) {
     return (
@@ -153,7 +176,7 @@ export default function PrescriptionDialog({
           </div>
 
           <Tabs defaultValue="prescriptions" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="prescriptions" className="flex items-center gap-1.5 text-xs">
                 <FileText className="w-3.5 h-3.5" />
                 Rx ({patient.prescriptions?.length || 0})
@@ -165,6 +188,10 @@ export default function PrescriptionDialog({
               <TabsTrigger value="billing" className="flex items-center gap-1.5 text-xs">
                 <Receipt className="w-3.5 h-3.5" />
                 Bills ({(patient as PatientHistory).bills?.length || 0})
+              </TabsTrigger>
+              <TabsTrigger value="preferences" className="flex items-center gap-1.5 text-xs">
+                <Settings className="w-3.5 h-3.5" />
+                Opt-in/Prefs
               </TabsTrigger>
             </TabsList>
 
@@ -286,6 +313,61 @@ export default function PrescriptionDialog({
                   No billing history found.
                 </div>
               )}
+            </TabsContent>
+
+            <TabsContent value="preferences" className="space-y-4 mt-4 bg-white p-4 rounded-lg border">
+              <h5 className="font-bold text-sm text-gray-900 mb-2">WhatsApp Opt-in & Preferences</h5>
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="whatsappOptIn"
+                    checked={whatsappOptIn}
+                    onChange={(e) => setWhatsappOptIn(e.target.checked)}
+                    className="rounded border-gray-300 text-apollo-blue focus:ring-apollo-blue"
+                  />
+                  <label htmlFor="whatsappOptIn" className="text-xs font-semibold text-gray-700">
+                    Opt-in to transactional messages (Booking, updates, pickup alerts)
+                  </label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="marketingOptIn"
+                    checked={marketingOptIn}
+                    onChange={(e) => setMarketingOptIn(e.target.checked)}
+                    className="rounded border-gray-300 text-apollo-blue focus:ring-apollo-blue"
+                  />
+                  <label htmlFor="marketingOptIn" className="text-xs font-semibold text-gray-700">
+                    Opt-in to marketing/campaign broadcasts (Health camps, holiday alerts)
+                  </label>
+                </div>
+                <div className="pt-2">
+                  <label className="text-xs font-semibold block mb-1 text-gray-700">Preferred Communication Channel</label>
+                  <select
+                    value={commPreference}
+                    onChange={(e) => setCommPreference(e.target.value)}
+                    className="w-full text-xs rounded border border-gray-300 p-2 focus:ring-apollo-blue focus:border-apollo-blue"
+                  >
+                    <option value="whatsapp">WhatsApp Business Platform</option>
+                    <option value="sms">Standard SMS Fallback</option>
+                    <option value="email">Email Communications</option>
+                  </select>
+                </div>
+                <Button
+                  size="sm"
+                  className="w-full mt-2"
+                  disabled={savePref.isPending}
+                  onClick={() => savePref.mutate({
+                    patientId: patientId!,
+                    whatsappOptIn: whatsappOptIn,
+                    marketingOptIn: marketingOptIn,
+                    communicationPreference: commPreference,
+                  })}
+                >
+                  {savePref.isPending ? "Saving preferences..." : "Save Preferences"}
+                </Button>
+              </div>
             </TabsContent>
           </Tabs>
         </div>
